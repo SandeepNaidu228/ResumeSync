@@ -12,6 +12,7 @@ import ResumesPage from "./pages/ResumesPage";
 import WorkspacePage from "./pages/WorkspacePage";
 import JobTrackerPage from "./pages/JobTrackerPage";
 import AtsPage from "./pages/AtsPage";
+import ResumeBuilderPage from "./pages/ResumeBuilderPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,8 @@ function AppRoutes() {
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/resumes" element={<ProtectedRoute><ResumesPage /></ProtectedRoute>} />
       <Route path="/resume/:id" element={<ProtectedRoute><WorkspacePage /></ProtectedRoute>} />
+      <Route path="/builder" element={<ProtectedRoute><ResumeBuilderPage /></ProtectedRoute>} />
+      <Route path="/builder/:id" element={<ProtectedRoute><ResumeBuilderPage /></ProtectedRoute>} />
       <Route path="/job-tracker" element={<ProtectedRoute><JobTrackerPage /></ProtectedRoute>} />
       <Route path="/ats" element={<ProtectedRoute><AtsPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />

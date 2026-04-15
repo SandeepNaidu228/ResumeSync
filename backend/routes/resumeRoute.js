@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import OpenAI from "openai";
 
 import { analyzeResume } from "../controllers/resumecontroller.js";
 import { protect } from "../middleware/authmiddleware.js";
@@ -21,7 +22,7 @@ router.post(
     try {
       let resumeText = req.body.resumeText;
       const jobRole = req.body.jobRole;
-      const fileName = req.file?.originalname || "pasted-resume.txt";
+      const fileName = req.file?.originalname || req.body.fileName || "pasted-resume.txt";
 
       // ✅ If PDF uploaded → extract text properly
       if (req.file) {
@@ -151,6 +152,7 @@ router.put("/:id", protect, async (req, res) => {
     if (req.body.resume_text !== undefined) updateData.resume_text = req.body.resume_text;
     if (req.body.resume_html !== undefined) updateData.resume_html = req.body.resume_html;
     if (req.body.resume_data !== undefined) updateData.resume_data = req.body.resume_data;
+    if (req.body.file_name !== undefined) updateData.file_name = req.body.file_name;
 
     const updated = await ResumeAnalysis.findOneAndUpdate(
       { _id: req.params.id, user_id: req.user.id },
@@ -258,6 +260,89 @@ Resume Text:
     res.json({ resume_html: compiledHtml });
   } catch (error) {
     console.error("COMPILE ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ Refine Text with Groq AI (with Fallback Rotation)
+let currentGroqKeyIndex = 0;
+
+router.post("/refine-text", protect, async (req, res) => {
+  try {
+    const { text, context, jobDescription } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: "Text to refine is required" });
+    }
+
+    const keys = [
+      process.env.GROQ_API_KEY_1,
+      process.env.GROQ_API_KEY_2,
+      process.env.GROQ_API_KEY_3,
+      process.env.GROQ_API_KEY_4,
+      process.env.GROQ_API_KEY_5
+    ].filter(k => k && k.trim() !== "");
+
+    if (keys.length === 0) {
+      return res.json({ refinedText: `${text} (Polished by AI)` });
+    }
+
+    const promptContext = context  
+      ? `This text is for the "${context}" section of a resume.` 
+      : `This text is for a professional resume.`;
+
+    const jobDescInstruction = jobDescription && jobDescription.trim().length > 5 
+      ? `\nTarget Job Description:\n"${jobDescription}"\n\nYou MUST deeply tailor and optimize the refined text to highlight relevance to this specific job description, focusing on matching required skills, tone, and objectives.`
+      : "";
+
+    const prompt = `You are an expert resume writer. Refine and professionally rewrite the following text to make it more impactful, concise, and ATS-friendly. ${promptContext}${jobDescInstruction}
+    
+    If it is a summary, keep it to 3-4 sentences.
+    If it is a bullet point, start with a strong action verb and keep it to 1-2 lines.
+    Do not add any conversational filler, introductory phrases, or quotes. Return ONLY the refined text.
+    
+    Text to refine: 
+    "${text}"`;
+
+    let lastError = null;
+
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const keyToUse = keys[currentGroqKeyIndex];
+      try {
+        const client = new OpenAI({
+          apiKey: keyToUse,
+          baseURL: "https://api.groq.com/openai/v1",
+        });
+
+        const response = await client.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.6,
+          max_tokens: 300,
+        });
+
+        let refinedText = response.choices[0]?.message?.content?.trim();
+        
+        if (refinedText) {
+          // Remove wrapping quotes if AI adds them
+          if (refinedText.startsWith('"') && refinedText.endsWith('"')) {
+            refinedText = refinedText.slice(1, -1).trim();
+          }
+          return res.json({ refinedText });
+        } else {
+          throw new Error("AI returned empty response");
+        }
+      } catch (err) {
+        lastError = err.message || JSON.stringify(err);
+        console.warn(`Groq key index ${currentGroqKeyIndex} failed: ${lastError}. Trying next...`);
+        // Move to next key
+        currentGroqKeyIndex = (currentGroqKeyIndex + 1) % keys.length;
+      }
+    }
+
+    return res.status(500).json({ error: `Groq AI Error: ${lastError}`, details: lastError });
+
+  } catch (error) {
+    console.error("REFINE ERROR:", error);
     res.status(500).json({ error: error.message });
   }
 });

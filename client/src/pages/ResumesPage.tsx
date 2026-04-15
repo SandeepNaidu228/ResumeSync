@@ -47,8 +47,6 @@ export default function ResumesPage() {
     }
   };
 
-  const scoreColor = (s: number) => s >= 75 ? "bg-green-500" : s >= 60 ? "bg-yellow-500" : "bg-orange-500";
-  const scoreIcon = (s: number) => s >= 75 ? "verified" : s >= 60 ? "warning" : "trending_up";
 
   return (
     <div className="bg-[#f6f8f6] font-[Inter,sans-serif] text-[#0e1b12] min-h-screen flex flex-col">
@@ -75,11 +73,12 @@ export default function ResumesPage() {
             {loading ? (
               <div className="col-span-full flex justify-center py-16"><div className="w-8 h-8 border-2 border-[#17e85d] border-t-transparent rounded-full animate-spin" /></div>
             ) : history.map((item) => (
-              <div key={item._id} onClick={() => navigate(`/resume/${item._id}`)}
-                className="group flex flex-col rounded-xl bg-white shadow-sm border border-transparent hover:border-[#17e85d]/30 transition-all duration-300 overflow-hidden h-full cursor-pointer">
-                <div className="relative w-full aspect-[3/4] bg-gray-100 overflow-hidden border-b border-gray-100">
-                  {/* Resume preview mockup */}
-                  <div className="w-full h-full bg-white p-6 flex flex-col gap-3 transform group-hover:scale-105 transition-transform duration-500">
+              <div key={item._id}
+                className="group flex flex-col rounded-xl bg-white shadow-sm border border-[#e7f3eb] hover:border-[#17e85d]/40 hover:shadow-md transition-all duration-300 overflow-hidden h-full">
+
+                {/* Thumbnail */}
+                <div className="relative w-full aspect-[3/4] bg-gray-50 overflow-hidden border-b border-gray-100">
+                  <div className="w-full h-full bg-white p-6 flex flex-col gap-3 transform group-hover:scale-[1.02] transition-transform duration-500 pointer-events-none">
                     <div className="w-1/3 h-2 bg-gray-200 rounded" />
                     <div className="w-1/2 h-4 bg-gray-300 rounded mt-2" />
                     <div className="w-full h-2 bg-gray-100 rounded mt-4" />
@@ -89,55 +88,53 @@ export default function ResumesPage() {
                     <div className="w-full h-2 bg-gray-100 rounded" />
                     <div className="w-5/6 h-2 bg-gray-100 rounded" />
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                   <div className="absolute top-3 right-3">
-                    <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur px-2 py-1 text-xs font-bold">PDF</span>
-                  </div>
-                  <div className="absolute bottom-3 left-3">
-                    <span className={`inline-flex items-center gap-1 rounded-full ${scoreColor(item.overall_score||0)} text-white px-2.5 py-1 text-xs font-bold shadow-lg`}>
-                      <MI name={scoreIcon(item.overall_score||0)} className="text-[14px]" />
-                      {item.overall_score||0}% Match
+                    <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur px-2 py-1 text-xs font-bold">
+                      {item.resume_data ? "BUILDER" : "PDF"}
                     </span>
-                  </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 backdrop-blur-[2px]">
-                    {[["visibility","View"],["edit","Edit"],["download","Download"]].map(([icon,title])=>(
-                      <button key={icon} title={title} onClick={e=>{e.stopPropagation();navigate(`/resume/${item._id}`);}} className="bg-white text-[#0e1b12] hover:text-[#17e85d] p-2 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                        <MI name={icon} />
-                      </button>
-                    ))}
                   </div>
                 </div>
-                <div className="p-4 flex flex-col gap-2 flex-1 relative">
+
+                {/* Card Footer */}
+                <div className="p-4 flex flex-col gap-3 flex-1">
                   <div className="flex justify-between items-start">
-                    <h3 className="text-lg font-bold group-hover:text-[#17e85d] transition-colors line-clamp-2 pr-8">{item.file_name || "Resume"}</h3>
+                    <h3 className="text-base font-bold text-[#0e1b12] line-clamp-2 pr-6 leading-tight">{item.file_name || "Resume"}</h3>
                     <button
                       onClick={(e) => handleDelete(e, item._id)}
-                      className="absolute top-4 right-4 w-8 h-8 rounded-full bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
-                      title="Delete Resume"
+                      className="shrink-0 w-7 h-7 rounded-full bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
+                      title="Delete"
                     >
-                      <MI name="delete" className="text-[18px]" />
+                      <MI name="delete" className="text-[16px]" />
                     </button>
                   </div>
-                  <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-[#4d9966]">
-                    <span className="flex items-center gap-1">
-                      <MI name="calendar_today" className="text-[14px]" />
-                      {new Date(item.createdAt).toLocaleDateString()}
-                    </span>
-                    <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide">
-                      {item.job_role || "General"}
-                    </span>
+
+                  <span className="text-[11px] text-[#4d9966] flex items-center gap-1">
+                    <MI name="calendar_today" className="text-[13px]" />
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </span>
+
+                  {/* Action buttons */}
+                  <div className="mt-auto pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => navigate(`/builder/${item._id}`)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 bg-[#17e85d] hover:brightness-105 text-[#112116] text-xs font-bold rounded-lg transition-all"
+                    >
+                      <MI name="edit" className="text-[15px]" />
+                      Edit Resume
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
 
             {/* Create new */}
-            <button onClick={() => navigate("/dashboard")} className="group flex flex-col items-center justify-center rounded-xl bg-white/50 border-2 border-dashed border-gray-300 hover:border-[#17e85d] hover:bg-green-50/50 transition-all duration-300 min-h-[360px] cursor-pointer">
+            <button onClick={() => navigate("/builder")} className="group flex flex-col items-center justify-center rounded-xl bg-white/50 border-2 border-dashed border-gray-300 hover:border-[#17e85d] hover:bg-green-50/50 transition-all duration-300 min-h-[360px] cursor-pointer">
               <div className="size-16 rounded-full bg-green-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <MI name="add" className="text-3xl text-[#17e85d]" />
               </div>
               <h3 className="text-lg font-bold mb-1">Create New Resume</h3>
-              <p className="text-[#4d9966] text-sm text-center px-6">Start from scratch or upload an existing document</p>
+              <p className="text-[#4d9966] text-sm text-center px-6">Start building your resume from scratch</p>
             </button>
           </div>
         </section>

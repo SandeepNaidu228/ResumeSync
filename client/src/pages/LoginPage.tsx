@@ -31,6 +31,8 @@ export default function LoginPage() {
       if (!response.ok) throw new Error(data.error || "Login failed");
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("user_name", data.fullName || "");
+      localStorage.setItem("user_email", data.email || "");
       toast({ title: "Login successful 🎉" });
       navigate("/dashboard");
     } catch (err: any) {
