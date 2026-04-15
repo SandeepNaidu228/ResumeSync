@@ -122,7 +122,7 @@ function BasicsTab({ data, set, onRefine }: any) {
       <Textarea label="Profile summary" placeholder="A brief 3-4 line intro about you, your skills, and what you're looking for..." value={data.summary} onChange={(e: any) => set("summary", e.target.value)} onRefine={() => onRefine(data.summary, "Summary", (val: string) => set("summary", val))} />
 
       <SectionDivider>Education</SectionDivider>
-      {data.education.map((e: any, i: number) => (
+      {(data.education || []).map((e: any, i: number) => (
         <EntryWrapper key={e.id} label={`EDU_${String(i + 1).padStart(2, "0")}`} onRemove={data.education.length > 1 ? () => set("education", data.education.filter((x: any) => x.id !== e.id)) : null}>
           <Input label="School / University" placeholder="Shiv Nadar University" value={e.school} onChange={(ev: any) => set("education", data.education.map((x: any) => x.id === e.id ? { ...x, school: ev.target.value } : x))} />
           <Input label="Degree / Program" placeholder="B.Tech in Computer Science" value={e.degree} onChange={(ev: any) => set("education", data.education.map((x: any) => x.id === e.id ? { ...x, degree: ev.target.value } : x))} />
@@ -142,7 +142,7 @@ function ExperienceTab({ data, set, onRefine }: any) {
   return (
     <>
       <SectionDivider>Work Experience</SectionDivider>
-      {data.experience.map((e: any, i: number) => (
+      {(data.experience || []).map((e: any, i: number) => (
         <EntryWrapper key={e.id} label={`EXP_${String(i + 1).padStart(2, "0")}`} onRemove={data.experience.length > 1 ? () => set("experience", data.experience.filter((x: any) => x.id !== e.id)) : null}>
           <Input label="Company" placeholder="Infosys Springboard" value={e.company} onChange={(ev: any) => set("experience", data.experience.map((x: any) => x.id === e.id ? { ...x, company: ev.target.value } : x))} />
           <Input label="Role / Title" placeholder="Full Stack Intern" value={e.role} onChange={(ev: any) => set("experience", data.experience.map((x: any) => x.id === e.id ? { ...x, role: ev.target.value } : x))} />
@@ -159,11 +159,38 @@ function ExperienceTab({ data, set, onRefine }: any) {
   );
 }
 
-function ProjectsTab({ data, set, onRefine }: any) {
+function ProjectsTab({ data, set, onRefine, onAutoRecommendProjects, isRecommendingProjects, onManualSelect }: any) {
   return (
     <>
       <SectionDivider>Projects</SectionDivider>
-      {data.projects.map((e: any, i: number) => (
+      
+      <div className="mb-4">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => onAutoRecommendProjects()}
+            disabled={!data.jobDescription || isRecommendingProjects}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 ${data.jobDescription && !isRecommendingProjects ? 'bg-gradient-to-r from-green-400 to-green-500 text-white hover:brightness-105 cursor-pointer' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+            title={!data.jobDescription ? "Please add a Target Job Description in Basics section first" : "Query your Master Profile based on Job Description"}
+          >
+            {isRecommendingProjects ? (
+              <><span className="material-symbols-outlined animate-spin text-[16px]">sync</span> Analyzing Master Profile...</>
+            ) : (
+              <><span className="material-symbols-outlined text-[16px]">auto_awesome</span> Auto-select Best Projects</>
+            )}
+          </button>
+          
+          <button 
+            onClick={onManualSelect}
+            className="px-4 py-2 bg-white border border-[#d6eadd] text-[#112116] rounded-lg text-sm font-bold shadow-sm hover:bg-[#17e85d]/10 hover:border-[#17e85d] transition-all flex items-center justify-center"
+            title="Manually select from Master Profile"
+          >
+            <span className="material-symbols-outlined text-[18px]">library_add</span>
+          </button>
+        </div>
+        {!data.jobDescription && <p className="text-[10px] text-center text-gray-400 mt-1.5 font-medium">Add a Target Job Description in the Basics tab to unlock.</p>}
+      </div>
+
+      {(data.projects || []).map((e: any, i: number) => (
         <EntryWrapper key={e.id} label={`PROJ_${String(i + 1).padStart(2, "0")}`} onRemove={data.projects.length > 1 ? () => set("projects", data.projects.filter((x: any) => x.id !== e.id)) : null}>
           <Input label="Project name" placeholder="Inaikka: Real-Time Chat App" value={e.name} onChange={(ev: any) => set("projects", data.projects.map((x: any) => x.id === e.id ? { ...x, name: ev.target.value } : x))} />
           <Input label="Tech stack" placeholder="MongoDB, Express.js, React.js, Node.js, Socket.IO" value={e.tech} onChange={(ev: any) => set("projects", data.projects.map((x: any) => x.id === e.id ? { ...x, tech: ev.target.value } : x))} />
@@ -180,7 +207,7 @@ function MoreTab({ data, set, onRefine }: any) {
   return (
     <>
       <SectionDivider>Technical Skills</SectionDivider>
-      {data.skills.map((e: any, i: number) => (
+      {(data.skills || []).map((e: any, i: number) => (
         <EntryWrapper key={e.id} label={`SKILL_${String(i + 1).padStart(2, "0")}`} onRemove={data.skills.length > 1 ? () => set("skills", data.skills.filter((x: any) => x.id !== e.id)) : null}>
           <Input label="Domain (e.g. Frontend)" placeholder="Frontend" value={e.domain} onChange={(ev: any) => set("skills", data.skills.map((x: any) => x.id === e.id ? { ...x, domain: ev.target.value } : x))} />
           <Input label="Skills" placeholder="React, Next.js, Tailwind CSS" value={e.skills} onChange={(ev: any) => set("skills", data.skills.map((x: any) => x.id === e.id ? { ...x, skills: ev.target.value } : x))} />
@@ -189,7 +216,7 @@ function MoreTab({ data, set, onRefine }: any) {
       <AddBtn text="+ Add Skill Domain" onClick={() => set("skills", [...data.skills, { id: newId(), domain: "", skills: "" }])} />
 
       <SectionDivider>Certifications</SectionDivider>
-      {data.certifications.map((e: any, i: number) => (
+      {(data.certifications || []).map((e: any, i: number) => (
         <EntryWrapper key={e.id} label={`CERT_${String(i + 1).padStart(2, "0")}`} onRemove={data.certifications.length > 1 ? () => set("certifications", data.certifications.filter((x: any) => x.id !== e.id)) : null}>
           <Input label="Certification name & issuer" placeholder="J.P. Morgan Software Engineering – Forage" value={e.text} onChange={(ev: any) => set("certifications", data.certifications.map((x: any) => x.id === e.id ? { ...x, text: ev.target.value } : x))} />
         </EntryWrapper>
@@ -197,7 +224,7 @@ function MoreTab({ data, set, onRefine }: any) {
       <AddBtn text="+ Add Certification" onClick={() => set("certifications", [...data.certifications, { id: newId(), text: "" }])} />
 
       <SectionDivider>Achievements</SectionDivider>
-      {data.achievements.map((e: any, i: number) => (
+      {(data.achievements || []).map((e: any, i: number) => (
         <EntryWrapper key={e.id} label={`ACH_${String(i + 1).padStart(2, "0")}`} onRemove={data.achievements.length > 1 ? () => set("achievements", data.achievements.filter((x: any) => x.id !== e.id)) : null}>
           <Textarea label="Achievement description" placeholder="2x Finalist in Internal Hackathon – Built a gamified website promoting marine education." value={e.text} onChange={(ev: any) => set("achievements", data.achievements.map((x: any) => x.id === e.id ? { ...x, text: ev.target.value } : x))} onRefine={() => onRefine(e.text, "Achievements", (val: string) => set("achievements", data.achievements.map((x: any) => x.id === e.id ? { ...x, text: val } : x)))} />
         </EntryWrapper>
@@ -423,7 +450,83 @@ export default function ResumeBuilderPage() {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [refineModalArgs, setRefineModalArgs] = useState<{ text: string, context: string, jobDescription: string, onApply: (val: string) => void } | null>(null);
+  const [isRecommendingProjects, setIsRecommendingProjects] = useState(false);
+  const [showManualProjectsModal, setShowManualProjectsModal] = useState(false);
+  const [masterProjectsFromDb, setMasterProjectsFromDb] = useState<any[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
+
+  const handleManualSelect = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const profileRes = await fetch(`${API}/api/profile`, { headers: { "Authorization": `Bearer ${token}` } });
+      if (!profileRes.ok) throw new Error("Could not fetch Master Profile");
+      const profileData = await profileRes.json();
+      const masterProjects = profileData.projects || [];
+      if (masterProjects.length === 0) {
+        toast({ title: "No Master Projects", description: "You don't have any projects saved in your Master Profile.", variant: "destructive" });
+        return;
+      }
+      setMasterProjectsFromDb(masterProjects);
+      setShowManualProjectsModal(true);
+    } catch (err: any) {
+      toast({ title: "Failed to load", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleAutoRecommendProjects = async () => {
+    if (!data.jobDescription) return;
+    try {
+      setIsRecommendingProjects(true);
+      const token = localStorage.getItem("token");
+      
+      // 1. Fetch user profile
+      const profileRes = await fetch(`${API}/api/profile`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!profileRes.ok) throw new Error("Could not fetch Master Profile");
+      const profileData = await profileRes.json();
+      const masterProjects = profileData.projects || [];
+      
+      if (masterProjects.length === 0) {
+        toast({ title: "No Master Projects", description: "You don't have any projects saved in your Master Profile. Go to Settings/Profile to add some!", variant: "destructive" });
+        setIsRecommendingProjects(false);
+        return;
+      }
+
+      // 2. Ask AI to select and filter
+      const recommendRes = await fetch(`${API}/api/resume/recommend-projects`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobDescription: data.jobDescription,
+          masterProjects
+        })
+      });
+
+      const recommendData = await recommendRes.json();
+      if (!recommendRes.ok) throw new Error(recommendData.error || "Recommendation request failed");
+      
+      if (recommendData.recommendedProjects && recommendData.recommendedProjects.length > 0) {
+        // Map recommended projects to resume project schema
+        const mappedProjects = recommendData.recommendedProjects.map((p: any) => ({
+          id: newId(),
+          name: p.name,
+          tech: p.tech_stack,
+          link: "",
+          bullets: p.description
+        }));
+        
+        setData(prev => ({ ...prev, projects: mappedProjects }));
+        toast({ title: "Projects Updated ✨", description: `Successfully pulled ${mappedProjects.length} highly relevant projects from your Master Profile.`, style: { backgroundColor: '#17e85d', color: '#112116' } });
+      } else {
+        toast({ title: "No Match", description: "AI couldn't find highly relevant projects for this specific job." });
+      }
+    } catch (err: any) {
+      toast({ title: "Recommendation Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsRecommendingProjects(false);
+    }
+  };
 
   useEffect(() => {
     if (routeId) {
@@ -562,6 +665,43 @@ export default function ResumeBuilderPage() {
       )}
 
       <AiRefineModal args={refineModalArgs} onClose={() => setRefineModalArgs(null)} token={token} />
+
+      {/* Manual Project Selection Modal */}
+      {showManualProjectsModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowManualProjectsModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-6 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-[#17e85d]">library_books</span>
+              <h3 className="text-lg font-black">Select from Master Profile</h3>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">Click to append a master project directly to your resume.</p>
+            
+            <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-200">
+              {masterProjectsFromDb.map((p, i) => (
+                <div key={i} className="bg-slate-50 border border-gray-200 rounded-xl p-4 flex flex-col gap-2 relative">
+                  <button 
+                    onClick={() => {
+                      const newProj = { id: newId(), name: p.name || "", tech: p.tech_stack || "", link: "", bullets: p.description || "" };
+                      setData((prev: any) => ({ ...prev, projects: [...(prev.projects || []), newProj] }));
+                      toast({ title: "Project Appended", description: `Added ${p.name || "Project"} to your resume.` });
+                    }}
+                    className="absolute top-4 right-4 bg-white border border-[#d6eadd] text-[#112116] text-[11px] font-bold px-3 py-1.5 rounded shadow-sm hover:bg-[#17e85d] hover:text-[#112116] transition-colors"
+                  >
+                    + ADD TO RESUME
+                  </button>
+                  <h4 className="font-bold text-[#0e1b12] pr-24">{p.name || "Untitled"}</h4>
+                  {p.tech_stack && <p className="text-xs font-mono text-blue-600">{p.tech_stack}</p>}
+                  {p.description && <p className="text-xs text-slate-600 mt-1 line-clamp-2">{p.description}</p>}
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-4 mt-4 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setShowManualProjectsModal(false)} className="px-6 py-2 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Action Bar */}
       <div className="h-14 shrink-0 bg-white border-b border-[#e7f3eb] flex items-center justify-between px-6 shadow-sm z-10 w-full">
@@ -625,7 +765,7 @@ export default function ResumeBuilderPage() {
           <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300">
             {tab === "basics" && <BasicsTab data={data} set={set} onRefine={(text: string, context: string, onApply: any) => setRefineModalArgs({ text, context, jobDescription: data.jobDescription, onApply })} />}
             {tab === "experience" && <ExperienceTab data={data} set={set} onRefine={(text: string, context: string, onApply: any) => setRefineModalArgs({ text, context, jobDescription: data.jobDescription, onApply })} />}
-            {tab === "projects" && <ProjectsTab data={data} set={set} onRefine={(text: string, context: string, onApply: any) => setRefineModalArgs({ text, context, jobDescription: data.jobDescription, onApply })} />}
+            {tab === "projects" && <ProjectsTab data={data} set={set} onRefine={(text: string, context: string, onApply: any) => setRefineModalArgs({ text, context, jobDescription: data.jobDescription, onApply })} onAutoRecommendProjects={handleAutoRecommendProjects} isRecommendingProjects={isRecommendingProjects} onManualSelect={handleManualSelect} />}
             {tab === "more" && <MoreTab data={data} set={set} onRefine={(text: string, context: string, onApply: any) => setRefineModalArgs({ text, context, jobDescription: data.jobDescription, onApply })} />}
           </div>
         </div>

@@ -264,12 +264,97 @@ Resume Text:
   }
 });
 
+// ✅ Recommend projects based on Job Description
+router.post("/recommend-projects", protect, async (req, res) => {
+  try {
+    const { jobDescription, masterProjects } = req.body;
+    
+    if (!jobDescription || !masterProjects || masterProjects.length === 0) {
+      return res.status(400).json({ error: "Job description and a non-empty master projects list are required" });
+    }
+
+    const keys = [
+      process.env.GROQ_API_KEY_1,
+      process.env.GROQ_API_KEY_2,
+      process.env.GROQ_API_KEY_3,
+      process.env.GROQ_API_KEY_4,
+      process.env.GROQ_API_KEY_5
+    ].filter(k => k && k.trim() !== "");
+
+    if (keys.length === 0) {
+      // Mock if no keys are found
+      return res.json({ recommendedProjects: masterProjects.slice(0, 2) });
+    }
+
+    const prompt = `You are an expert technical recruiter and resume tailorer. 
+I have a list of software projects I have built, and a Target Job Description I want to apply for.
+
+TARGET JOB DESCRIPTION:
+"""${jobDescription}"""
+
+MY MASTER PROJECTS REPOSITORY:
+${masterProjects.map((p, index) => `[ID: ${index}] Name: ${p.name || "N/A"}\nTech Stack: ${p.tech_stack || "N/A"}\nDescription: ${p.description || "N/A"}\n---`).join("\n")}
+
+Your task is to analyze the Job Description to identify technical requirements, domain relevance, and required skills. Then, scan my Master Projects Repository and select the top 2 to 3 most relevant projects that I should include on my resume for this specific job.
+
+Return ONLY a valid JSON array of the IDs you chose. DO NOT ADD ANY MARKDOWN OR TEXT outside the JSON array.
+Example Response:
+[0, 2, 5]
+`;
+
+    let lastError = null;
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const keyToUse = keys[currentGroqKeyIndex];
+      try {
+        const client = new OpenAI({
+          apiKey: keyToUse,
+          baseURL: "https://api.groq.com/openai/v1",
+        });
+
+        const response = await client.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.1, // low temp for deterministic JSON
+          max_tokens: 50, // we only need a tiny array
+        });
+
+        let aiText = response.choices[0]?.message?.content?.trim() || "[]";
+        
+        // Clean up markdown block if the AI ignored instructions
+        aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
+
+        let selectedIds = JSON.parse(aiText);
+        if (!Array.isArray(selectedIds)) {
+            selectedIds = [];
+        }
+
+        const recommendedProjects = selectedIds
+            .map(id => masterProjects[parseInt(id)])
+            .filter(Boolean); // remove any undefined
+
+        return res.json({ recommendedProjects });
+
+      } catch (err) {
+        lastError = err.message || JSON.stringify(err);
+        console.warn(`Groq key index ${currentGroqKeyIndex} failed: ${lastError}. Trying next...`);
+        // Move to next key
+        currentGroqKeyIndex = (currentGroqKeyIndex + 1) % keys.length;
+      }
+    }
+
+    return res.status(500).json({ error: "Failed to fetch recommendations from AI", details: lastError });
+  } catch (error) {
+    console.error("RECOMMEND PROJECTS ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ✅ Refine Text with Groq AI (with Fallback Rotation)
 let currentGroqKeyIndex = 0;
 
 router.post("/refine-text", protect, async (req, res) => {
   try {
-    const { text, context, jobDescription } = req.body;
+    const { text, context, jobDescription, profileContext } = req.body;
     if (!text) {
       return res.status(400).json({ error: "Text to refine is required" });
     }
@@ -294,11 +379,19 @@ router.post("/refine-text", protect, async (req, res) => {
       ? `\nTarget Job Description:\n"${jobDescription}"\n\nYou MUST deeply tailor and optimize the refined text to highlight relevance to this specific job description, focusing on matching required skills, tone, and objectives.`
       : "";
 
-    const prompt = `You are an expert resume writer. Refine and professionally rewrite the following text to make it more impactful, concise, and ATS-friendly. ${promptContext}${jobDescInstruction}
+    const userProfileInstruction = profileContext
+      ? `\nHere is my background/profile for context:\n${JSON.stringify(profileContext)}\nDO NOT hallucinate skills I do not have in this profile.`
+      : "";
+
+    const prompt = `You are an expert resume writer. Refine and professionally rewrite the following text to make it more impactful, concise, and ATS-friendly. ${promptContext}${jobDescInstruction}${userProfileInstruction}
     
     If it is a summary, keep it to 3-4 sentences.
     If it is a bullet point, start with a strong action verb and keep it to 1-2 lines.
-    Do not add any conversational filler, introductory phrases, or quotes. Return ONLY the refined text.
+    
+    CRITICAL INSTRUCTIONS:
+    - DO NOT include ANY conversational filler (e.g., "Here is a detailed description", "Or you can use this", "Sure", etc.).
+    - DO NOT add bullet points, hyphens (-), or asterisks (*) at the beginning of lines. The UI handles bullet formatting automatically.
+    - Return STRICTLY the refined text and nothing else.
     
     Text to refine: 
     "${text}"`;

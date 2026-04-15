@@ -6,6 +6,7 @@ import cors from "cors";
 import resumeRoute from "./routes/resumeRoute.js";
 import authRoute from "./routes/authRoute.js";
 import jobRoute from "./routes/jobRoute.js";
+import profileRoute from "./routes/profileRoute.js";
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ mongoose.connect(process.env.MONGO_URI)
 app.use("/api/auth", authRoute);
 app.use("/api/resume", resumeRoute);
 app.use("/api/jobs", jobRoute);
+app.use("/api/profile", profileRoute);
 
 // ✅ Server
 app.listen(5000, () => console.log("Server running on port 5000"));

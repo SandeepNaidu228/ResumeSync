@@ -43,7 +43,6 @@ export default function Navbar() {
     { label: "Dashboard", path: "/dashboard" },
     { label: "My Resumes", path: "/resumes", match: "/resume" },
     { label: "Job Tracker", path: "/job-tracker" },
-    { label: "ATS Simulation", path: "/ats" },
   ];
 
   const isActive = (link: { path: string; match?: string }) => {
@@ -81,10 +80,11 @@ export default function Navbar() {
       </div>
 
       {/* Profile Avatar */}
-      <div className="relative" ref={dropRef}>
+      <div className="relative">
         <button
-          onClick={() => setOpen((p) => !p)}
-          className="flex items-center gap-2.5 pl-1 pr-3 py-1 rounded-full hover:bg-green-100 transition-colors"
+          onClick={() => navigate("/profile")}
+          className="flex items-center gap-2.5 pl-1 pr-4 py-1 rounded-full hover:bg-[#e7f3eb] transition-colors"
+          title="Go to Master Profile"
         >
           {/* Avatar circle */}
           <div className="w-9 h-9 rounded-full bg-[#17e85d] flex items-center justify-center font-bold text-[#112116] text-sm shrink-0">
@@ -92,58 +92,9 @@ export default function Navbar() {
           </div>
           <div className="hidden sm:flex flex-col items-start leading-tight">
             <span className="text-sm font-bold text-[#0e1b12] max-w-[120px] truncate">{userName}</span>
-            <span className="text-[10px] text-[#4d9966] max-w-[120px] truncate">{userEmail}</span>
+            <span className="text-[10px] text-[#4d9966] max-w-[120px] truncate">Master Profile Settings</span>
           </div>
-          <MI name="expand_more" className={`text-[18px] text-[#4d9966] transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
-
-        {/* Dropdown */}
-        {open && (
-          <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-[#e7f3eb] overflow-hidden z-50">
-            {/* Profile card */}
-            <div className="px-4 py-4 bg-gradient-to-br from-[#f0fdf4] to-[#f6f8f6] border-b border-[#e7f3eb]">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-[#17e85d] flex items-center justify-center font-bold text-[#112116] text-lg shrink-0">
-                  {initials || "U"}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-[#0e1b12] truncate">{userName}</p>
-                  <p className="text-xs text-[#4d9966] truncate">{userEmail}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick links */}
-            <div className="py-1">
-              {[
-                { icon: "dashboard", label: "Dashboard", path: "/dashboard" },
-                { icon: "library_books", label: "My Resumes", path: "/resumes" },
-                { icon: "work", label: "Job Tracker", path: "/job-tracker" },
-                { icon: "add_circle", label: "Create Resume", path: "/builder" },
-              ].map(({ icon, label, path }) => (
-                <button
-                  key={path}
-                  onClick={() => { setOpen(false); navigate(path); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#0e1b12] hover:bg-[#f0fdf4] transition-colors text-left"
-                >
-                  <MI name={icon} className="text-[#4d9966] text-[18px]" />
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Sign out */}
-            <div className="border-t border-[#e7f3eb] py-1">
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
-              >
-                <MI name="logout" className="text-[18px]" />
-                Sign Out
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </header>
   );

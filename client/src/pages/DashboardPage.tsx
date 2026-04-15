@@ -164,11 +164,10 @@ export default function DashboardPage() {
         </section>
 
         {/* Quick nav cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
             { icon: "library_books", label: "My Resumes", sub: "Full resume gallery", path: "/resumes", color: "bg-[#ecf6ef] text-[#4d9966]" },
             { icon: "work", label: "Job Tracker", sub: "Track applications", path: "/job-tracker", color: "bg-blue-50 text-blue-600" },
-            { icon: "verified", label: "ATS Checker", sub: "Upload & analyse", path: "/ats", color: "bg-amber-50 text-amber-600" },
           ].map(({ icon, label, sub, path, color }) => (
             <button
               key={path}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { API } from "@/config";
+import { GoogleLogin } from "@react-oauth/google";
 
 const MI = ({ name, className = "" }: { name: string; className?: string }) => (
   <span className={`material-symbols-outlined ${className}`}>{name}</span>
@@ -33,10 +34,38 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user_name", data.fullName || "");
       localStorage.setItem("user_email", data.email || "");
+      localStorage.setItem("profile_completed", String(data.profile_completed || false));
+      localStorage.setItem("user", JSON.stringify(data));
       toast({ title: "Login successful 🎉" });
       navigate("/dashboard");
     } catch (err: any) {
       toast({ title: "Login failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Google Auth failed");
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user_name", data.fullName || "");
+      localStorage.setItem("user_email", data.email || "");
+      localStorage.setItem("profile_completed", String(data.profile_completed || false));
+      localStorage.setItem("user", JSON.stringify(data));
+      
+      toast({ title: "Securely logged in via Google 🎉" });
+      navigate("/dashboard");
+    } catch (err: any) {
+      toast({ title: "Google Sign-In failed", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -106,6 +135,27 @@ export default function LoginPage() {
             {loading ? <><div className="w-5 h-5 border-2 border-[#0e1b12] border-t-transparent rounded-full animate-spin" /> Signing in...</> : "Sign In"}
           </button>
         </form>
+
+        <div className="mt-6 flex items-center justify-between">
+          <span className="w-1/5 border-b border-gray-200 lg:w-1/4"></span>
+          <span className="text-xs text-center text-gray-500 uppercase">or login with</span>
+          <span className="w-1/5 border-b border-gray-200 lg:w-1/4"></span>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => {
+              toast({ title: "Google Login Failed", description: "Could not connect to Google", variant: "destructive" });
+            }}
+            useOneTap
+            shape="rectangular"
+            theme="outline"
+            size="large"
+            type="standard"
+            text="continue_with"
+          />
+        </div>
 
         <p className="text-center text-sm text-[#4d9966] mt-6">
           Don't have an account?{" "}
