@@ -27,6 +27,12 @@ export default function ProfilePage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [saveMsg, setSaveMsg] = useState<null | "ok" | "err">(null);
 
+  // Skill gap state
+  const [missingSkills, setMissingSkills] = useState<any[]>([]);
+  const [gapLoading, setGapLoading] = useState(false);
+  const [gapAnalyzed, setGapAnalyzed] = useState(false);
+  const [showRoadmap, setShowRoadmap] = useState(false);
+
   const userName = localStorage.getItem("user_name") || "User";
   const userEmail = localStorage.getItem("user_email") || "";
   const initials = userName
@@ -508,68 +514,121 @@ export default function ProfilePage() {
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-6">
 
-              {/* Profile Completeness */}
-              <section className="bg-[#112116] text-white p-8 rounded-2xl shadow-lg">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-[#17e85d]/20 rounded-lg">
-                    <MI name="analytics" className="text-[#17e85d] text-[22px]" filled />
+              {/* Skill Gap Analyzer */}
+              <section className="bg-[#112116] text-white p-6 rounded-2xl shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-[#17e85d]/20 rounded-lg shrink-0">
+                    <MI name="trending_up" className="text-[#17e85d] text-[20px]" filled />
                   </div>
                   <div>
-                    <h2 className="font-black text-lg tracking-tight">Profile Strength</h2>
-                    <p className="text-xs text-[#4d9966] font-bold uppercase tracking-widest">Master Profile</p>
+                    <h2 className="font-black text-base tracking-tight">Skill Gap Analyzer</h2>
+                    <p className="text-[11px] text-[#4d9966] font-bold uppercase tracking-widest">Based on your applied jobs</p>
                   </div>
                 </div>
 
-                <div className="mb-8">
-                  <div className="flex justify-between items-end mb-2">
-                    <span className="text-sm font-medium text-white/80">Completeness</span>
-                    <span className="text-3xl font-black text-[#17e85d]">{completeness}%</span>
-                  </div>
-                  <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#17e85d] rounded-full transition-all duration-700"
-                      style={{ width: `${completeness}%` }}
-                    />
-                  </div>
-                </div>
+                {!gapAnalyzed && !gapLoading && (
+                  <div className="text-center py-4">
+                    <p className="text-xs text-white/50 mb-4 leading-relaxed">
+                      Analyzes your applied job descriptions and finds skills you're missing. Requires jobs with status other than "Want to Apply".
+                    </p>
+                    <button
+                      onClick={async () => {
+                        setGapLoading(true);
+                        setGapAnalyzed(false);
+                        try {
+                          const token = localStorage.getItem("token");
+                          // Fetch all jobs
+                          const jobsRes = await fetch(`${API}/api/jobs`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                          });
+                          const allJobs = jobsRes.ok ? await jobsRes.json() : [];
+                          const appliedJobs = allJobs.filter((j: any) => j.status !== "Wishlist" && j.job_description);
 
-                <div className="space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-[#4d9966] mb-2">Checklist</h3>
-                  {[
-                    { label: "Bio written", done: profile.raw_bio.length > 20 },
-                    { label: "Target roles set", done: profile.target_roles.filter(Boolean).length > 0 },
-                    { label: "Tech skills added", done: profile.technical_skills.filter(Boolean).length > 0 },
-                    { label: "Soft skills added", done: profile.soft_skills.filter(Boolean).length > 0 },
-                    { label: "At least 1 project", done: profile.projects.filter((p) => p.name).length > 0 },
-                  ].map(({ label, done }) => (
-                    <div key={label} className="flex items-center gap-3">
-                      <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
-                          done ? "bg-[#17e85d]" : "bg-white/10 border border-white/20"
-                        }`}
-                      >
-                        {done && <MI name="check" className="text-[#112116] text-[13px] font-black" />}
+                          if (appliedJobs.length === 0) {
+                            alert("No applied jobs with job descriptions found. Add jobs with 'Already Applied' status and paste their job descriptions.");
+                            setGapLoading(false);
+                            return;
+                          }
+
+                          const res = await fetch(`${API}/api/resume/skill-gap-analysis`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({
+                              userSkills: profile.technical_skills,
+                              appliedJobs,
+                            }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.error);
+                          setMissingSkills(data.missingSkills || []);
+                          setGapAnalyzed(true);
+                        } catch (err: any) {
+                          alert("Error: " + err.message);
+                        } finally {
+                          setGapLoading(false);
+                        }
+                      }}
+                      className="w-full py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-xl transition-colors"
+                    >
+                      Analyze Skill Gap
+                    </button>
+                  </div>
+                )}
+
+                {gapLoading && (
+                  <div className="flex flex-col items-center py-6 gap-3">
+                    <div className="w-6 h-6 border-2 border-[#17e85d] border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs text-white/60">Analyzing your job requirements...</p>
+                  </div>
+                )}
+
+                {gapAnalyzed && !gapLoading && (
+                  <>
+                    {missingSkills.length === 0 ? (
+                      <div className="text-center py-4">
+                        <MI name="verified" className="text-[#17e85d] text-3xl mb-2" filled />
+                        <p className="text-sm font-bold text-white">Great match!</p>
+                        <p className="text-xs text-white/50 mt-1">Your skills cover the requirements of your applied jobs.</p>
                       </div>
-                      <span className={`text-sm ${done ? "text-white" : "text-white/40 line-through"}`}>
-                        {label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                    ) : (
+                      <>
+                        <div className="space-y-2 mb-4 max-h-56 overflow-y-auto pr-1">
+                          {missingSkills.map((skill, i) => (
+                            <div key={i} className="bg-white/8 border border-white/10 rounded-xl p-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-bold text-white">{skill.skill}</span>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                  skill.priority === "High" ? "bg-red-500/20 text-red-300" :
+                                  skill.priority === "Medium" ? "bg-amber-500/20 text-amber-300" :
+                                  "bg-white/10 text-white/50"
+                                }`}>
+                                  {skill.priority}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-white/50 leading-relaxed">{skill.reason}</p>
+                            </div>
+                          ))}
+                        </div>
 
-                <button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="w-full mt-8 py-3 bg-[#17e85d] text-[#112116] font-black rounded-xl shadow-lg active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <div className="w-4 h-4 border-2 border-[#112116] border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <MI name="save" className="text-[18px]" />
-                  )}
-                  {loading ? "SAVING..." : "SAVE ALL CHANGES"}
-                </button>
+                        <button
+                          onClick={() => setShowRoadmap(true)}
+                          className="w-full py-2.5 bg-[#17e85d] text-[#112116] font-black text-sm rounded-xl shadow-lg hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        >
+                          <MI name="map" className="text-[16px]" />
+                          Generate Learning Roadmap
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => { setGapAnalyzed(false); setMissingSkills([]); }}
+                      className="w-full mt-2 py-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
+                    >
+                      Re-analyze
+                    </button>
+                  </>
+                )}
               </section>
+
 
               {/* Quick Summary */}
               <section className="bg-white p-6 rounded-2xl shadow-sm border border-[#d6eadd]/50">
@@ -577,34 +636,133 @@ export default function ProfilePage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[#497d65] font-medium">Tech Skills</span>
-                    <span className="font-black text-[#0e1b12]">
-                      {profile.technical_skills.filter(Boolean).length}
-                    </span>
+                    <span className="font-black text-[#0e1b12]">{profile.technical_skills.filter(Boolean).length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[#497d65] font-medium">Soft Skills</span>
-                    <span className="font-black text-[#0e1b12]">
-                      {profile.soft_skills.filter(Boolean).length}
-                    </span>
+                    <span className="font-black text-[#0e1b12]">{profile.soft_skills.filter(Boolean).length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[#497d65] font-medium">Projects</span>
-                    <span className="font-black text-[#0e1b12]">
-                      {profile.projects.filter((p) => p.name).length}
-                    </span>
+                    <span className="font-black text-[#0e1b12]">{profile.projects.filter((p) => p.name).length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[#497d65] font-medium">Target Roles</span>
-                    <span className="font-black text-[#0e1b12]">
-                      {profile.target_roles.filter(Boolean).length}
-                    </span>
+                    <span className="font-black text-[#0e1b12]">{profile.target_roles.filter(Boolean).length}</span>
                   </div>
                 </div>
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="w-full mt-5 py-2.5 bg-[#17e85d] text-[#112116] font-black text-sm rounded-xl shadow-md hover:brightness-105 active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {loading ? <div className="w-4 h-4 border-2 border-[#112116] border-t-transparent rounded-full animate-spin" /> : <MI name="save" className="text-[16px]" />}
+                  {loading ? "Saving..." : "Save All Changes"}
+                </button>
               </section>
             </div>
           </div>
         </div>
       </main>
+
+      {/* ── Roadmap Modal ── */}
+      {showRoadmap && missingSkills.length > 0 && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowRoadmap(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl border border-[#d6eadd] w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white px-6 py-4 border-b border-[#ecf6ef] flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#ecf6ef] flex items-center justify-center">
+                  <MI name="map" className="text-[#17e85d] text-[20px]" filled />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-[#0e1b12]">Your Learning Roadmap</h2>
+                  <p className="text-xs text-[#497d65]">Skills to learn · Ordered by priority</p>
+                </div>
+              </div>
+              <button onClick={() => setShowRoadmap(false)} className="text-[#89bca1] hover:text-red-500 transition-colors">
+                <MI name="close" />
+              </button>
+            </div>
+
+            {/* Skills list */}
+            <div className="p-6 space-y-4">
+              {missingSkills.map((skill, i) => {
+                const roadmapUrl = skill.roadmap_slug
+                  ? `https://roadmap.sh/${skill.roadmap_slug}`
+                  : null;
+                const resourceUrl = roadmapUrl || skill.alt_resource;
+                const resourceName = roadmapUrl
+                  ? "roadmap.sh"
+                  : skill.alt_resource_name || "Learning Resource";
+                const isRoadmap = !!roadmapUrl;
+
+                return (
+                  <div key={i} className="flex gap-4 items-start">
+                    {/* Step number */}
+                    <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-black ${
+                      skill.priority === "High"
+                        ? "bg-red-100 text-red-600"
+                        : skill.priority === "Medium"
+                        ? "bg-amber-100 text-amber-600"
+                        : "bg-slate-100 text-slate-600"
+                    }`}>
+                      {i + 1}
+                    </div>
+
+                    {/* Card */}
+                    <div className="flex-1 bg-[#f6f8f6] border border-[#d6eadd] rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                          <p className="font-bold text-[#0e1b12] text-base">{skill.skill}</p>
+                          <p className="text-xs text-[#497d65] mt-1 leading-relaxed">{skill.reason}</p>
+                        </div>
+                        <span className={`shrink-0 text-[10px] font-black px-2 py-1 rounded-full ${
+                          skill.priority === "High" ? "bg-red-100 text-red-600" :
+                          skill.priority === "Medium" ? "bg-amber-100 text-amber-600" :
+                          "bg-slate-100 text-slate-500"
+                        }`}>
+                          {skill.priority} Priority
+                        </span>
+                      </div>
+
+                      {/* Resource link */}
+                      {resourceUrl && (
+                        <a
+                          href={resourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                            isRoadmap
+                              ? "bg-[#112116] text-[#17e85d] hover:brightness-125"
+                              : "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                          }`}
+                        >
+                          <MI name={isRoadmap ? "route" : "open_in_new"} className="text-[14px]" />
+                          Learn on {resourceName}
+                          {isRoadmap && <span className="opacity-60">↗</span>}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="px-6 pb-6">
+              <p className="text-xs text-[#89bca1] text-center">
+                Skills are ordered by frequency across your applied job descriptions.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="max-w-7xl mx-auto px-6 py-8 border-t border-[#d6eadd]/40 text-center w-full">
         <p className="text-[#89bca1] text-sm font-medium">© 2025 ResumeSync — Powered by Groq AI</p>

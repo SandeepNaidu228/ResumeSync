@@ -440,4 +440,191 @@ router.post("/refine-text", protect, async (req, res) => {
   }
 });
 
+// ✅ Generate AI Cold Outreach Email
+router.post("/generate-outreach-email", protect, async (req, res) => {
+  try {
+    const { jobDescription, company, role, profile } = req.body;
+    if (!jobDescription || !company || !role) {
+      return res.status(400).json({ error: "Job description, company, and role are required." });
+    }
+
+    const keys = [
+      process.env.GROQ_API_KEY_1,
+      process.env.GROQ_API_KEY_2,
+      process.env.GROQ_API_KEY_3,
+      process.env.GROQ_API_KEY_4,
+      process.env.GROQ_API_KEY_5
+    ].filter(k => k && k.trim() !== "");
+
+    if (keys.length === 0) {
+      return res.status(500).json({ error: "No Groq API keys configured." });
+    }
+
+    const userName = profile?.name || "the candidate";
+    const techSkills = (profile?.technical_skills || []).filter(Boolean).join(", ");
+    const softSkills = (profile?.soft_skills || []).filter(Boolean).join(", ");
+    const bio = profile?.raw_bio || "";
+    const projects = (profile?.projects || [])
+      .filter(p => p.name)
+      .map((p, i) => `[PROJECT_${i}:${p.name}] Tech: ${p.tech_stack || "N/A"} — ${p.description || ""}`)
+      .join("\n");
+
+    const prompt = `You are an expert technical career coach helping a candidate write a professional cold outreach email to an HR or hiring manager.
+
+CANDIDATE PROFILE:
+Name: ${userName}
+Bio: ${bio}
+Technical Skills: ${techSkills}
+Soft Skills: ${softSkills}
+Projects:
+${projects || "No projects listed."}
+
+TARGET JOB:
+Company: ${company}
+Role: ${role}
+Job Description:
+"""${jobDescription}"""
+
+TASK:
+Write a professional, concise cold outreach email for this candidate.
+- Mention 1-2 of their technical skills that directly match the job description.
+- If any project is HIGHLY relevant to the job description, mention it naturally and wrap its name in the tag <<HIGHLIGHT>> like this: <<HIGHLIGHT>>ProjectName<<END_HIGHLIGHT>>. Only highlight if genuinely relevant.
+- Keep the email under 200 words.
+- Do NOT include a subject line — just the email body starting with "Dear Hiring Team," or similar.
+- Use the actual candidate name provided.
+- Return ONLY the email body. No preamble. Just the email text itself.`;
+
+    let lastError = null;
+    let keyIndex = currentGroqKeyIndex;
+
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const keyToUse = keys[keyIndex];
+      try {
+        const client = new OpenAI({
+          apiKey: keyToUse,
+          baseURL: "https://api.groq.com/openai/v1",
+        });
+
+        const response = await client.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.65,
+          max_tokens: 600,
+        });
+
+        const emailBody = response.choices[0]?.message?.content?.trim();
+        if (!emailBody) throw new Error("AI returned empty response");
+
+        // Parse highlighted projects
+        const highlightedProjects = [];
+        const regex = /<<HIGHLIGHT>>(.*?)<<END_HIGHLIGHT>>/g;
+        let match;
+        while ((match = regex.exec(emailBody)) !== null) {
+          highlightedProjects.push(match[1].trim());
+        }
+
+        return res.json({ emailBody, highlightedProjects });
+
+      } catch (err) {
+        lastError = err.message || JSON.stringify(err);
+        console.warn(`Groq key ${keyIndex} failed: ${lastError}. Rotating...`);
+        keyIndex = (keyIndex + 1) % keys.length;
+      }
+    }
+
+    return res.status(500).json({ error: `All Groq keys failed: ${lastError}` });
+
+  } catch (error) {
+    console.error("EMAIL GEN ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ Skill Gap Analysis — compare user skills vs applied job requirements
+router.post("/skill-gap-analysis", protect, async (req, res) => {
+  try {
+    const { userSkills, appliedJobs } = req.body;
+
+    if (!appliedJobs || appliedJobs.length === 0) {
+      return res.status(400).json({ error: "No applied jobs provided." });
+    }
+
+    const keys = [
+      process.env.GROQ_API_KEY_1,
+      process.env.GROQ_API_KEY_2,
+      process.env.GROQ_API_KEY_3,
+      process.env.GROQ_API_KEY_4,
+      process.env.GROQ_API_KEY_5,
+    ].filter(k => k && k.trim() !== "");
+
+    if (keys.length === 0) {
+      return res.status(500).json({ error: "No Groq API keys configured." });
+    }
+
+    const jobsSummary = appliedJobs
+      .map((j, i) => `Job ${i + 1}: ${j.role} at ${j.company}\nDescription: ${j.job_description || "N/A"}`)
+      .join("\n\n---\n\n");
+
+    const prompt = `You are a career development expert and technical skills advisor.
+
+USER'S CURRENT SKILLS:
+${(userSkills || []).filter(Boolean).join(", ") || "None listed"}
+
+JOBS THE USER HAS APPLIED TO:
+${jobsSummary}
+
+TASK:
+1. Analyze the job descriptions to identify all required/desired technical skills mentioned.
+2. Compare against the user's current skills.
+3. List the MISSING skills that appear in the job descriptions but NOT in the user's skill set.
+4. For each missing skill, decide if it's on roadmap.sh. Roadmap.sh has these topics: javascript, typescript, react, vue, angular, nodejs, python, java, golang, rust, devops, docker, kubernetes, aws, mongodb, postgresql-dba, sql, git-github, linux, backend, frontend, full-stack, system-design, datastructures-and-algorithms, django, spring-boot, flutter, react-native, ai-data-scientist, data-science-and-analytics, cyber-security, blockchain, redis, graphql, terraform, prompt-engineering.
+5. Return a JSON array of missing skills sorted by priority (most commonly required first).
+
+Each item in the array must have:
+- "skill": exact skill name (e.g. "Kubernetes")
+- "priority": "High", "Medium", or "Low"  
+- "reason": one sentence why it's needed (reference the specific job)
+- "roadmap_slug": the roadmap.sh slug if available, else null (e.g. "kubernetes" or null)
+- "alt_resource": if no roadmap.sh slug, provide a direct URL to the best free resource (Coursera, freeCodeCamp, MDN, official docs)
+- "alt_resource_name": human-readable name of alt resource
+
+Return ONLY a valid JSON array. No markdown, no explanation. Example:
+[{"skill":"Kubernetes","priority":"High","reason":"Required in 2 out of 3 job postings","roadmap_slug":"kubernetes","alt_resource":null,"alt_resource_name":null}]`;
+
+    let lastError = null;
+    let keyIndex = currentGroqKeyIndex;
+
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const keyToUse = keys[keyIndex];
+      try {
+        const client = new OpenAI({ apiKey: keyToUse, baseURL: "https://api.groq.com/openai/v1" });
+        const response = await client.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.1,
+          max_tokens: 1000,
+        });
+
+        let raw = response.choices[0]?.message?.content?.trim();
+        if (!raw) throw new Error("Empty AI response");
+
+        // Strip markdown code fences if present
+        raw = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+
+        const skills = JSON.parse(raw);
+        return res.json({ missingSkills: skills });
+
+      } catch (err) {
+        lastError = err.message;
+        keyIndex = (keyIndex + 1) % keys.length;
+      }
+    }
+
+    return res.status(500).json({ error: `All Groq keys failed: ${lastError}` });
+  } catch (error) {
+    console.error("SKILL GAP ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
