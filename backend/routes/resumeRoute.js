@@ -176,9 +176,15 @@ router.post("/tailor-text", protect, async (req, res) => {
       return res.status(400).json({ error: "originalText and jobDescription are required" });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
-    if (!apiKey) {
-      // fallback mock
+    const keys = [
+      process.env.GROQ_API_KEY_1,
+      process.env.GROQ_API_KEY_2,
+      process.env.GROQ_API_KEY_3,
+      process.env.GROQ_API_KEY_4,
+      process.env.GROQ_API_KEY_5,
+    ].filter((k) => k && k.trim() !== "");
+
+    if (keys.length === 0) {
       return res.json({ tailoredText: `${originalText} (optimized for the role with relevant keywords)` });
     }
 
@@ -192,24 +198,28 @@ Job Description:
 
 Return ONLY the rewritten text, no explanations, no quotes around it.`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4 },
-        }),
+    let lastError = null;
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const keyToUse = keys[currentGroqKeyIndex];
+      try {
+        const client = new OpenAI({ apiKey: keyToUse, baseURL: "https://api.groq.com/openai/v1" });
+        const response = await client.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.4,
+          max_tokens: 500,
+        });
+        const tailoredText = response.choices[0]?.message?.content?.trim();
+        if (!tailoredText) throw new Error("AI returned no text");
+        return res.json({ tailoredText });
+      } catch (err) {
+        lastError = err.message || JSON.stringify(err);
+        console.warn(`Groq key index ${currentGroqKeyIndex} failed (tailor): ${lastError}. Trying next...`);
+        currentGroqKeyIndex = (currentGroqKeyIndex + 1) % keys.length;
       }
-    );
+    }
 
-    const data = await response.json();
-    const tailoredText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (!tailoredText) throw new Error("AI returned no text");
-
-    res.json({ tailoredText });
+    return res.status(500).json({ error: `All Groq keys failed: ${lastError}` });
   } catch (error) {
     console.error("TAILOR ERROR:", error);
     res.status(500).json({ error: error.message });
@@ -224,40 +234,49 @@ router.post("/compile-html", protect, async (req, res) => {
       return res.status(400).json({ error: "resumeText is required" });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
-    if (!apiKey) {
+    const keys = [
+      process.env.GROQ_API_KEY_1,
+      process.env.GROQ_API_KEY_2,
+      process.env.GROQ_API_KEY_3,
+      process.env.GROQ_API_KEY_4,
+      process.env.GROQ_API_KEY_5,
+    ].filter((k) => k && k.trim() !== "");
+
+    if (keys.length === 0) {
       return res.json({ resume_html: `<div class="p-8 text-black">Mock Compiled HTML layout since no API key is provided. <br/><br/> ${resumeText}</div>` });
     }
 
-    const prompt = `You are an expert web developer and UI designer. Take the following raw resume text and compile it into a fully structured, elegant, semantic HTML representation. 
+    const prompt = `You are an expert web developer and UI designer. Take the following raw resume text and compile it into a fully structured, elegant, semantic HTML representation.
 Wrap it in a single <div> container. Use Tailwind CSS classes for beautiful, professional styling: e.g. text-3xl font-bold for the name, flexbox with justify-between for dates, subtle borders for section dividers, and clean lists for bullet points.
-Make it look exactly like a premium, printed A4 PDF resume. 
+Make it look exactly like a premium, printed A4 PDF resume.
 DO NOT USE MARKDOWN BLOCK QUOTES (no \`\`\`html). Return ONLY the raw HTML code string.
 
 Resume Text:
 "${resumeText}"`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2 },
-        }),
+    let lastError = null;
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const keyToUse = keys[currentGroqKeyIndex];
+      try {
+        const client = new OpenAI({ apiKey: keyToUse, baseURL: "https://api.groq.com/openai/v1" });
+        const response = await client.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.2,
+          max_tokens: 2048,
+        });
+        let compiledHtml = response.choices[0]?.message?.content?.trim();
+        if (!compiledHtml) throw new Error("AI returned no HTML");
+        compiledHtml = compiledHtml.replace(/```html|```/g, "").trim();
+        return res.json({ resume_html: compiledHtml });
+      } catch (err) {
+        lastError = err.message || JSON.stringify(err);
+        console.warn(`Groq key index ${currentGroqKeyIndex} failed (compile-html): ${lastError}. Trying next...`);
+        currentGroqKeyIndex = (currentGroqKeyIndex + 1) % keys.length;
       }
-    );
+    }
 
-    const data = await response.json();
-    let compiledHtml = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (!compiledHtml) throw new Error("AI returned no HTML");
-
-    // Clean up markdown markers just in case
-    compiledHtml = compiledHtml.replace(/```html|```/g, "").trim();
-
-    res.json({ resume_html: compiledHtml });
+    return res.status(500).json({ error: `All Groq keys failed: ${lastError}` });
   } catch (error) {
     console.error("COMPILE ERROR:", error);
     res.status(500).json({ error: error.message });

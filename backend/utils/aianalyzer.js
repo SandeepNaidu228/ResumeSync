@@ -1,9 +1,23 @@
-import fetch from "node-fetch";
+import OpenAI from "openai";
+
+// ─── Groq Key Rotation ────────────────────────────────────────────────────────
+let currentGroqKeyIndex = 0;
+
+function getGroqKeys() {
+  return [
+    process.env.GROQ_API_KEY_1,
+    process.env.GROQ_API_KEY_2,
+    process.env.GROQ_API_KEY_3,
+    process.env.GROQ_API_KEY_4,
+    process.env.GROQ_API_KEY_5,
+  ].filter((k) => k && k.trim() !== "");
+}
 
 export const analyzeResumeWithAI = async (resumeText, jobRole) => {
+  const keys = getGroqKeys();
 
-  if (!process.env.GEMINI_API_KEY) {
-    console.log("⚠️ No AI API key found. Returning mock data.");
+  if (keys.length === 0) {
+    console.log("⚠️ No Groq API keys found. Returning mock data.");
     return {
       overall_score: 75,
       ats_score: 70,
@@ -15,17 +29,17 @@ export const analyzeResumeWithAI = async (resumeText, jobRole) => {
       suggestions: [
         "Add quantified results",
         "Improve formatting consistency",
-        "Include more relevant keywords"
+        "Include more relevant keywords",
       ],
       skills_found: ["React", "Node.js"],
       missing_skills: ["Docker", "CI/CD"],
-      resume_html: `<div class="p-8"><h1 class="text-3xl font-bold mb-4">Sample Resume</h1><p>Mock data generated because no API key was found.</p></div>`
+      resume_html: `<div class="p-8"><h1 class="text-3xl font-bold mb-4">Sample Resume</h1><p>Mock data generated because no API key was found.</p></div>`,
     };
   }
 
-const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
-const prompt = `
+  const prompt = `
 You are an expert ATS resume analyzer for fresher-level candidates.
 
 Assume the current year is ${currentYear}.
@@ -54,47 +68,46 @@ Return ONLY valid JSON in this format:
 }
 `;
 
-const response = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          responseMimeType: "application/json"
-        }
-      }),
+  let lastError = null;
+
+  for (let attempt = 0; attempt < keys.length; attempt++) {
+    const keyToUse = keys[currentGroqKeyIndex];
+    try {
+      const client = new OpenAI({
+        apiKey: keyToUse,
+        baseURL: "https://api.groq.com/openai/v1",
+      });
+
+      const response = await client.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        max_tokens: 4096,
+        response_format: { type: "json_object" },
+      });
+
+      const text = response.choices[0]?.message?.content?.trim();
+
+      if (!text) {
+        throw new Error("Groq returned empty response");
+      }
+
+      const clean = text.replace(/```json|```/g, "").trim();
+
+      try {
+        return JSON.parse(clean);
+      } catch (err) {
+        console.error("JSON Parse Error:", clean);
+        throw new Error("AI returned invalid JSON format");
+      }
+    } catch (err) {
+      lastError = err.message || JSON.stringify(err);
+      console.warn(
+        `Groq key index ${currentGroqKeyIndex} failed: ${lastError}. Trying next...`
+      );
+      currentGroqKeyIndex = (currentGroqKeyIndex + 1) % keys.length;
     }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.error("Gemini Error:", data);
-    throw new Error("Gemini API Error");
   }
 
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!text) {
-    console.error("Invalid Gemini response:", data);
-    throw new Error("Invalid Gemini response");
-  }
-
-  const clean = text.replace(/```json|```/g, "").trim();
-
-  try {
-    return JSON.parse(clean);
-  } catch (err) {
-    console.error("JSON Parse Error:", clean);
-    throw new Error("AI returned invalid JSON format");
-  }
+  throw new Error(`All Groq keys failed: ${lastError}`);
 };
