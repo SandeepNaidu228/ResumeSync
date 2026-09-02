@@ -2,12 +2,45 @@ import express from "express";
 import multer from "multer";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import OpenAI from "openai";
-
-import { analyzeResume } from "../controllers/resumecontroller.js";
+import {
+  analyzeResume,
+  createResume,
+  getResumes,
+  getResume,
+  updateResume,
+  deleteResume,
+  duplicateResume,
+} from "../controllers/resumecontroller.js";
 import { protect } from "../middleware/authmiddleware.js";
 import ResumeAnalysis from "../models/Resumeanalysis.js";
 
 const router = express.Router();
+
+// ============================================================
+// RESUME BUILDER API
+// ============================================================
+
+// Create builder resume
+router.post("/builder", protect, createResume);
+
+// Get all builder resumes
+router.get("/builder", protect, getResumes);
+
+// Get single builder resume
+router.get("/builder/:id", protect, getResume);
+
+// Update builder resume
+router.put("/builder/:id", protect, updateResume);
+
+// Delete builder resume
+router.delete("/builder/:id", protect, deleteResume);
+
+// Duplicate builder resume
+router.post(
+  "/builder/:id/duplicate",
+  protect,
+  duplicateResume
+);
 
 // ✅ Multer (memory storage)
 const upload = multer({
