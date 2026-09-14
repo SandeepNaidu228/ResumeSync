@@ -1,4 +1,15 @@
 import ExperienceEditor from "./ExperienceEditor";
+import EducationEditor from "./EducationEditor";
+import ProjectEditor from "./ProjectEditor";
+import SkillsEditor from "./SkillsEditor";
+import LanguagesEditor from "./LanguagesEditor";
+import CertificationsEditor from "./CertificationsEditor";
+import AwardsEditor from "./AwardsEditor";
+import PublicationsEditor from "./PublicationsEditor";
+import VolunteerEditor from "./VolunteerEditor";
+import InterestsEditor from "./InterestsEditor";
+import ReferencesEditor from "./ReferencesEditor";
+
 
 function ResumeEditor({
   resume,
@@ -188,9 +199,94 @@ function ResumeEditor({
     );
   }
 
-  if (activeSection === "experience") {
+if (activeSection === "experience") {
     return (
         <ExperienceEditor
+        resume={resume}
+        onChange={onChange}
+        />
+    );
+    }
+
+    if (activeSection === "education") {
+    return (
+        <EducationEditor
+        resume={resume}
+        onChange={onChange}
+        />
+    );
+    }
+
+    if (activeSection === "projects") {
+        return <ProjectEditor resume={resume} onChange={onChange} />;
+    }   
+
+    if (activeSection === "skills") {
+        return (
+            <SkillsEditor
+            resume={resume}
+            onChange={onChange}
+            />
+    );
+    }
+
+    if (activeSection === "languages") {
+        return (
+            <LanguagesEditor
+            resume={resume}
+            onChange={onChange}
+            />
+    );
+    }
+
+    if (activeSection === "certifications") {
+        return (
+            <CertificationsEditor
+            resume={resume}
+            onChange={onChange}
+            />
+    );
+    }
+
+    if (activeSection === "awards") {
+        return (
+            <AwardsEditor
+            resume={resume}
+            onChange={onChange}
+            />
+    );
+    }
+
+    if (activeSection === "publications") {
+        return (
+            <PublicationsEditor
+            resume={resume}
+            onChange={onChange}
+            />
+    );
+    }
+
+    if (activeSection === "volunteer") {
+        return (
+            <VolunteerEditor
+            resume={resume}
+            onChange={onChange}
+            />
+    );
+    }
+
+    if (activeSection === "interests") {
+        return (
+            <InterestsEditor
+            resume={resume}
+            onChange={onChange}
+            />
+    );
+    }
+
+    if (activeSection === "references") {
+    return (
+        <ReferencesEditor
         resume={resume}
         onChange={onChange}
         />

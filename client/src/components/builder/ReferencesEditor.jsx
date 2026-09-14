@@ -1,200 +1,188 @@
 import { useState } from "react";
-import RichTextEditor from "./RichTextEditor";
 
-function createExperience() {
+function createReference() {
   return {
     id: crypto.randomUUID(),
-    hidden: false,
-    company: "",
+    name: "",
     position: "",
-    location: "",
-    period: "",
+    organization: "",
+    email: "",
+    phone: "",
     website: {
       url: "",
       label: "",
     },
     description: "",
+    hidden: false,
   };
 }
 
-function ExperienceEditor({ resume, onChange }) {
-  const experiences =
-    resume.sections?.experience?.items || [];
+function ReferencesEditor({ resume, onChange }) {
+  const references =
+    resume.sections?.references?.items || [];
 
   const [editingId, setEditingId] = useState(
-    experiences[0]?.id || null
+    references[0]?.id || null
   );
 
-  const updateExperiences = (items) => {
+  const updateReferences = (items) => {
     onChange({
       sections: {
         ...resume.sections,
-        experience: {
-          ...resume.sections?.experience,
+        references: {
+          ...(resume.sections?.references || {}),
           items,
         },
       },
     });
   };
 
-  const addExperience = () => {
-    const item = createExperience();
+  const addReference = () => {
+    const reference = createReference();
 
-    updateExperiences([
-      ...experiences,
-      item,
+    updateReferences([
+      ...references,
+      reference,
     ]);
 
-    setEditingId(item.id);
+    setEditingId(reference.id);
   };
 
-  const updateExperience = (id, field, value) => {
-    const updated = experiences.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            [field]: value,
-          }
-        : item
+  const updateReference = (id, field, value) => {
+    updateReferences(
+      references.map((item) =>
+        item.id === id
+          ? { ...item, [field]: value }
+          : item
+      )
     );
-
-    updateExperiences(updated);
   };
 
   const updateWebsite = (id, value) => {
-    const updated = experiences.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            website: {
-              ...(item.website || {}),
-              url: value,
-            },
-          }
-        : item
+    updateReferences(
+      references.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              website: {
+                ...(item.website || {}),
+                url: value,
+              },
+            }
+          : item
+      )
     );
-
-    updateExperiences(updated);
   };
 
-  const deleteExperience = (id) => {
-    const updated = experiences.filter(
+  const deleteReference = (id) => {
+    const next = references.filter(
       (item) => item.id !== id
     );
 
-    updateExperiences(updated);
+    updateReferences(next);
 
     if (editingId === id) {
-      setEditingId(updated[0]?.id || null);
+      setEditingId(next[0]?.id || null);
     }
   };
 
   const toggleHidden = (id) => {
-    const updated = experiences.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            hidden: !item.hidden,
-          }
-        : item
+    updateReferences(
+      references.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              hidden: !item.hidden,
+            }
+          : item
+      )
     );
-
-    updateExperiences(updated);
   };
 
   return (
     <section className="resume-editor">
-
       <div className="editor-heading">
         <div>
           <span className="editor-eyebrow">
-            WORK HISTORY
+            REFERENCES
           </span>
 
-          <h1>Experience</h1>
+          <h1>References</h1>
 
           <p>
-            Add your professional experience and
-            describe the impact you made.
+            Add professional references and their
+            contact information.
           </p>
         </div>
 
         <button
           type="button"
           className="editor-add-button"
-          onClick={addExperience}
+          onClick={addReference}
         >
           <span className="material-symbols-outlined">
             add
           </span>
-
-          Add Experience
+          Add Reference
         </button>
       </div>
 
-      {experiences.length === 0 ? (
+      {references.length === 0 ? (
         <div className="editor-empty">
           <div className="editor-empty-icon">
             <span className="material-symbols-outlined">
-              work
+              groups
             </span>
           </div>
 
-          <h2>No experience added yet</h2>
+          <h2>No references added yet</h2>
 
           <p>
-            Add your latest role first. You can add
-            as many positions as you need.
+            Add managers, professors or other
+            professional references.
           </p>
 
           <button
             type="button"
             className="workspace-primary-btn"
-            onClick={addExperience}
+            onClick={addReference}
           >
             <span className="material-symbols-outlined">
               add
             </span>
-
-            Add Experience
+            Add Reference
           </button>
         </div>
       ) : (
         <div className="experience-editor-layout">
-
           <div className="experience-list">
-            {experiences.map((experience) => (
+            {references.map((item) => (
               <button
                 type="button"
-                key={experience.id}
+                key={item.id}
                 className={`experience-list-item ${
-                  editingId === experience.id
+                  editingId === item.id
                     ? "active"
                     : ""
                 }`}
                 onClick={() =>
-                  setEditingId(experience.id)
+                  setEditingId(item.id)
                 }
               >
                 <div className="experience-list-main">
                   <strong>
-                    {experience.position ||
-                      "Untitled Position"}
+                    {item.name ||
+                      "Unnamed Reference"}
                   </strong>
 
                   <span>
-                    {experience.company ||
-                      "Company name"}
+                    {item.position ||
+                      item.organization ||
+                      "Professional Reference"}
                   </span>
-
-                  {experience.period && (
-                    <small>
-                      {experience.period}
-                    </small>
-                  )}
                 </div>
 
-                {experience.hidden && (
+                {item.hidden && (
                   <span className="material-symbols-outlined">
                     visibility_off
                   </span>
@@ -204,79 +192,65 @@ function ExperienceEditor({ resume, onChange }) {
           </div>
 
           <div className="experience-form">
-
-            {experiences
+            {references
               .filter(
-                (experience) =>
-                  experience.id === editingId
+                (item) =>
+                  item.id === editingId
               )
-              .map((experience) => (
-                <ExperienceForm
-                  key={experience.id}
-                  experience={experience}
-                  onUpdate={updateExperience}
+              .map((item) => (
+                <ReferenceForm
+                  key={item.id}
+                  item={item}
+                  onUpdate={updateReference}
                   onUpdateWebsite={updateWebsite}
                   onDelete={() =>
-                    deleteExperience(
-                      experience.id
-                    )
+                    deleteReference(item.id)
                   }
                   onToggleHidden={() =>
-                    toggleHidden(
-                      experience.id
-                    )
+                    toggleHidden(item.id)
                   }
                 />
               ))}
-
           </div>
-
         </div>
       )}
-
     </section>
   );
 }
 
-function ExperienceForm({
-  experience,
+function ReferenceForm({
+  item,
   onUpdate,
   onUpdateWebsite,
   onDelete,
   onToggleHidden,
 }) {
-  const [showWebsite, setShowWebsite] =
-    useState(Boolean(experience.website?.url));
-
   return (
     <div className="experience-form-card">
-
       <div className="experience-form-header">
         <div>
           <span className="editor-eyebrow">
-            EXPERIENCE ENTRY
+            REFERENCE ENTRY
           </span>
 
           <h2>
-            {experience.position ||
-              "New Experience"}
+            {item.name || "New Reference"}
           </h2>
         </div>
 
         <div className="experience-form-actions">
-
           <button
             type="button"
             className="builder-icon-button"
             onClick={onToggleHidden}
             title={
-              experience.hidden
+              item.hidden
                 ? "Show in resume"
                 : "Hide from resume"
             }
           >
             <span className="material-symbols-outlined">
-              {experience.hidden
+              {item.hidden
                 ? "visibility_off"
                 : "visibility"}
             </span>
@@ -286,114 +260,113 @@ function ExperienceForm({
             type="button"
             className="builder-icon-button danger"
             onClick={onDelete}
-            title="Delete experience"
+            title="Delete reference"
           >
             <span className="material-symbols-outlined">
               delete
             </span>
           </button>
-
         </div>
       </div>
 
-      <div className="editor-two-columns">
+      <div className="editor-field">
+        <label>Name</label>
 
+        <input
+          value={item.name}
+          onChange={(event) =>
+            onUpdate(
+              item.id,
+              "name",
+              event.target.value
+            )
+          }
+          placeholder="John Doe"
+        />
+      </div>
+
+      <div className="editor-two-columns">
         <div className="editor-field">
           <label>Position</label>
 
           <input
-            value={experience.position}
+            value={item.position}
             onChange={(event) =>
               onUpdate(
-                experience.id,
+                item.id,
                 "position",
                 event.target.value
               )
             }
-            placeholder="Software Engineer"
+            placeholder="Engineering Manager"
           />
         </div>
 
         <div className="editor-field">
-          <label>Company</label>
+          <label>Organization</label>
 
           <input
-            value={experience.company}
+            value={item.organization}
             onChange={(event) =>
               onUpdate(
-                experience.id,
-                "company",
+                item.id,
+                "organization",
                 event.target.value
               )
             }
             placeholder="Google"
           />
         </div>
-
       </div>
 
       <div className="editor-two-columns">
-
         <div className="editor-field">
-          <label>Location</label>
+          <label>Email</label>
 
           <input
-            value={experience.location}
+            type="email"
+            value={item.email}
             onChange={(event) =>
               onUpdate(
-                experience.id,
-                "location",
+                item.id,
+                "email",
                 event.target.value
               )
             }
-            placeholder="Bengaluru, India"
+            placeholder="john@example.com"
           />
         </div>
 
         <div className="editor-field">
-          <label>Period</label>
+          <label>Phone</label>
 
           <input
-            value={experience.period}
+            value={item.phone}
             onChange={(event) =>
               onUpdate(
-                experience.id,
-                "period",
+                item.id,
+                "phone",
                 event.target.value
               )
             }
-            placeholder="Jan 2024 – Present"
+            placeholder="+91 98765 43210"
           />
         </div>
-
       </div>
 
       <div className="editor-field">
         <label>Website</label>
 
         <input
-          value={experience.website?.url || ""}
+          value={item.website?.url || ""}
           onChange={(event) =>
             onUpdateWebsite(
-              experience.id,
+              item.id,
               event.target.value
             )
           }
-          placeholder="https://company.com"
-          disabled={!showWebsite}
+          placeholder="https://linkedin.com/in/..."
         />
-
-        <button
-          type="button"
-          className="inline-text-button"
-          onClick={() =>
-            setShowWebsite((current) => !current)
-          }
-        >
-          {showWebsite
-            ? "Remove website"
-            : "Add website"}
-        </button>
       </div>
 
       <div className="editor-field">
@@ -401,25 +374,26 @@ function ExperienceForm({
           <label>Description</label>
 
           <span className="editor-hint">
-            Describe your responsibilities and impact
+            Add any additional context about the
+            reference.
           </span>
         </div>
 
-        <RichTextEditor
-            value={experience.description}
-            onChange={(value) =>
-                onUpdate(
-                experience.id,
-                "description",
-                value
-                )
-            }
-            placeholder="Describe your responsibilities, achievements, and impact..."
+        <textarea
+          rows={6}
+          value={item.description}
+          onChange={(event) =>
+            onUpdate(
+              item.id,
+              "description",
+              event.target.value
+            )
+          }
+          placeholder="Former manager who can speak about..."
         />
       </div>
-
     </div>
   );
 }
 
-export default ExperienceEditor;
+export default ReferencesEditor;

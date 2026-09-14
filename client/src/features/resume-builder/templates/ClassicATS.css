@@ -1,0 +1,241 @@
+.classic-ats-template {
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+
+  background: #ffffff;
+  color: #111111;
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  font-size: 11px;
+  line-height: 1.42;
+
+  padding: 38px 46px 42px;
+}
+
+.classic-ats-header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.classic-ats-header h1 {
+  margin: 0;
+
+  font-size: 27px;
+  line-height: 1.05;
+
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.classic-ats-headline {
+  margin-top: 4px;
+
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.classic-ats-contact {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 0;
+
+  margin-top: 7px;
+
+  font-size: 10px;
+}
+
+.classic-ats-contact > * {
+  display: inline-flex;
+  align-items: center;
+}
+
+.classic-ats-contact > *:not(:last-child)::after {
+  content: "|";
+  margin: 0 7px;
+  color: #444;
+}
+
+.classic-ats-contact a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.classic-ats-section {
+  margin-top: 13px;
+}
+
+.classic-ats-section h2 {
+  margin: 0 0 6px;
+
+  padding-bottom: 3px;
+
+  border-bottom: 1px solid #222;
+
+  font-size: 13px;
+  line-height: 1.1;
+
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.classic-ats-section-content {
+  margin-top: 0;
+}
+
+.classic-ats-entry {
+  margin-bottom: 8px;
+}
+
+.classic-ats-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.classic-ats-entry-left {
+  min-width: 0;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 5px;
+}
+
+.classic-ats-entry-left strong {
+  font-weight: 700;
+}
+
+.classic-ats-entry-left em {
+  font-style: italic;
+}
+
+.classic-ats-entry-left span {
+  color: #222;
+}
+
+.classic-ats-date {
+  flex: 0 0 auto;
+
+  white-space: nowrap;
+
+  font-style: italic;
+  font-size: 10px;
+}
+
+.classic-ats-entry-body {
+  margin-top: 2px;
+}
+
+.classic-ats-entry-body > div,
+.classic-ats-entry-body > p {
+  margin: 1px 0;
+}
+
+.classic-ats-rich-text {
+  margin-top: 3px;
+}
+
+.classic-ats-rich-text p {
+  margin: 2px 0;
+}
+
+.classic-ats-rich-text ul,
+.classic-ats-rich-text ol {
+  margin: 2px 0 2px 17px;
+  padding: 0;
+}
+
+.classic-ats-rich-text li {
+  margin: 1px 0;
+}
+
+.classic-ats-project {
+  margin-bottom: 8px;
+}
+
+.classic-ats-project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: 18px;
+}
+
+.classic-ats-project-header strong {
+  font-weight: 700;
+}
+
+.classic-ats-project-header span:not(.classic-ats-date) {
+  font-size: 10px;
+}
+
+.classic-ats-project-meta {
+  display: block;
+  margin-top: 1px;
+}
+
+.classic-ats-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.classic-ats-skill-row {
+  display: flex;
+  gap: 4px;
+}
+
+.classic-ats-skill-row strong {
+  flex: 0 0 auto;
+}
+
+.classic-ats-skill-row span {
+  min-width: 0;
+}
+
+.classic-ats-bullets {
+  margin: 0;
+  padding-left: 17px;
+}
+
+.classic-ats-bullets li {
+  margin: 2px 0;
+}
+
+.classic-ats-inline-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.classic-ats-inline-list span:not(:last-child)::after {
+  content: " • ";
+  margin: 0 6px;
+}
+
+.classic-ats-link {
+  color: inherit;
+  text-decoration: underline;
+  word-break: break-word;
+}
+
+@media print {
+  .classic-ats-template {
+    padding: 28px 38px 32px;
+    font-size: 10.5px;
+  }
+
+  .classic-ats-header h1 {
+    font-size: 26px;
+  }
+}

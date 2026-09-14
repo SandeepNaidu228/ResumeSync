@@ -8,6 +8,7 @@ import BuilderHeader from "../components/builder/BuilderHeader";
 import SectionSidebar from "../components/builder/SectionSidebar";
 import ResumeEditor from "../components/builder/ResumeEditor";
 import ResumePreview from "../components/builder/ResumePreview";
+import useResumeAutosave from "../features/resume-builder/useResumeAutosave";
 
 import {
   getResumeById,
@@ -38,6 +39,8 @@ function ResumeBuilder() {
 
   const [error, setError] =
     useState("");
+
+  useResumeAutosave(resume, Boolean(resume));
 
   useEffect(() => {
     const loadResume = async () => {

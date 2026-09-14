@@ -1,11 +1,10 @@
 import { useState } from "react";
 import RichTextEditor from "./RichTextEditor";
 
-function createExperience() {
+function createVolunteer() {
   return {
     id: crypto.randomUUID(),
-    hidden: false,
-    company: "",
+    organization: "",
     position: "",
     location: "",
     period: "",
@@ -13,188 +12,173 @@ function createExperience() {
       url: "",
       label: "",
     },
-    description: "",
+    summary: "",
+    hidden: false,
   };
 }
 
-function ExperienceEditor({ resume, onChange }) {
-  const experiences =
-    resume.sections?.experience?.items || [];
+function VolunteerEditor({ resume, onChange }) {
+  const volunteer =
+    resume.sections?.volunteer?.items || [];
 
   const [editingId, setEditingId] = useState(
-    experiences[0]?.id || null
+    volunteer[0]?.id || null
   );
 
-  const updateExperiences = (items) => {
+  const updateVolunteer = (items) => {
     onChange({
       sections: {
         ...resume.sections,
-        experience: {
-          ...resume.sections?.experience,
+        volunteer: {
+          ...(resume.sections?.volunteer || {}),
           items,
         },
       },
     });
   };
 
-  const addExperience = () => {
-    const item = createExperience();
+  const addVolunteer = () => {
+    const item = createVolunteer();
 
-    updateExperiences([
-      ...experiences,
-      item,
-    ]);
-
+    updateVolunteer([...volunteer, item]);
     setEditingId(item.id);
   };
 
-  const updateExperience = (id, field, value) => {
-    const updated = experiences.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            [field]: value,
-          }
-        : item
+  const updateItem = (id, field, value) => {
+    updateVolunteer(
+      volunteer.map((item) =>
+        item.id === id
+          ? { ...item, [field]: value }
+          : item
+      )
     );
-
-    updateExperiences(updated);
   };
 
   const updateWebsite = (id, value) => {
-    const updated = experiences.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            website: {
-              ...(item.website || {}),
-              url: value,
-            },
-          }
-        : item
+    updateVolunteer(
+      volunteer.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              website: {
+                ...(item.website || {}),
+                url: value,
+              },
+            }
+          : item
+      )
     );
-
-    updateExperiences(updated);
   };
 
-  const deleteExperience = (id) => {
-    const updated = experiences.filter(
+  const deleteVolunteer = (id) => {
+    const next = volunteer.filter(
       (item) => item.id !== id
     );
 
-    updateExperiences(updated);
+    updateVolunteer(next);
 
     if (editingId === id) {
-      setEditingId(updated[0]?.id || null);
+      setEditingId(next[0]?.id || null);
     }
   };
 
   const toggleHidden = (id) => {
-    const updated = experiences.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            hidden: !item.hidden,
-          }
-        : item
+    updateVolunteer(
+      volunteer.map((item) =>
+        item.id === id
+          ? { ...item, hidden: !item.hidden }
+          : item
+      )
     );
-
-    updateExperiences(updated);
   };
 
   return (
     <section className="resume-editor">
-
       <div className="editor-heading">
         <div>
           <span className="editor-eyebrow">
-            WORK HISTORY
+            VOLUNTEER EXPERIENCE
           </span>
 
-          <h1>Experience</h1>
+          <h1>Volunteer</h1>
 
           <p>
-            Add your professional experience and
-            describe the impact you made.
+            Showcase community work, volunteering and
+            leadership experience.
           </p>
         </div>
 
         <button
           type="button"
           className="editor-add-button"
-          onClick={addExperience}
+          onClick={addVolunteer}
         >
           <span className="material-symbols-outlined">
             add
           </span>
-
-          Add Experience
+          Add Volunteer Experience
         </button>
       </div>
 
-      {experiences.length === 0 ? (
+      {volunteer.length === 0 ? (
         <div className="editor-empty">
           <div className="editor-empty-icon">
             <span className="material-symbols-outlined">
-              work
+              volunteer_activism
             </span>
           </div>
 
-          <h2>No experience added yet</h2>
+          <h2>No volunteer experience added yet</h2>
 
           <p>
-            Add your latest role first. You can add
-            as many positions as you need.
+            Add organizations, positions and
+            contributions.
           </p>
 
           <button
             type="button"
             className="workspace-primary-btn"
-            onClick={addExperience}
+            onClick={addVolunteer}
           >
             <span className="material-symbols-outlined">
               add
             </span>
-
-            Add Experience
+            Add Volunteer Experience
           </button>
         </div>
       ) : (
         <div className="experience-editor-layout">
-
           <div className="experience-list">
-            {experiences.map((experience) => (
+            {volunteer.map((item) => (
               <button
                 type="button"
-                key={experience.id}
+                key={item.id}
                 className={`experience-list-item ${
-                  editingId === experience.id
+                  editingId === item.id
                     ? "active"
                     : ""
                 }`}
                 onClick={() =>
-                  setEditingId(experience.id)
+                  setEditingId(item.id)
                 }
               >
                 <div className="experience-list-main">
                   <strong>
-                    {experience.position ||
-                      "Untitled Position"}
+                    {item.position ||
+                      "Volunteer Position"}
                   </strong>
 
                   <span>
-                    {experience.company ||
-                      "Company name"}
+                    {item.organization ||
+                      "Organization"}
                   </span>
 
-                  {experience.period && (
-                    <small>
-                      {experience.period}
-                    </small>
+                  {item.period && (
+                    <small>{item.period}</small>
                   )}
                 </div>
 
-                {experience.hidden && (
+                {item.hidden && (
                   <span className="material-symbols-outlined">
                     visibility_off
                   </span>
@@ -204,79 +188,66 @@ function ExperienceEditor({ resume, onChange }) {
           </div>
 
           <div className="experience-form">
-
-            {experiences
+            {volunteer
               .filter(
-                (experience) =>
-                  experience.id === editingId
+                (item) =>
+                  item.id === editingId
               )
-              .map((experience) => (
-                <ExperienceForm
-                  key={experience.id}
-                  experience={experience}
-                  onUpdate={updateExperience}
+              .map((item) => (
+                <VolunteerForm
+                  key={item.id}
+                  item={item}
+                  onUpdate={updateItem}
                   onUpdateWebsite={updateWebsite}
                   onDelete={() =>
-                    deleteExperience(
-                      experience.id
-                    )
+                    deleteVolunteer(item.id)
                   }
                   onToggleHidden={() =>
-                    toggleHidden(
-                      experience.id
-                    )
+                    toggleHidden(item.id)
                   }
                 />
               ))}
-
           </div>
-
         </div>
       )}
-
     </section>
   );
 }
 
-function ExperienceForm({
-  experience,
+function VolunteerForm({
+  item,
   onUpdate,
   onUpdateWebsite,
   onDelete,
   onToggleHidden,
 }) {
-  const [showWebsite, setShowWebsite] =
-    useState(Boolean(experience.website?.url));
-
   return (
     <div className="experience-form-card">
-
       <div className="experience-form-header">
         <div>
           <span className="editor-eyebrow">
-            EXPERIENCE ENTRY
+            VOLUNTEER ENTRY
           </span>
 
           <h2>
-            {experience.position ||
-              "New Experience"}
+            {item.position ||
+              "New Volunteer Experience"}
           </h2>
         </div>
 
         <div className="experience-form-actions">
-
           <button
             type="button"
             className="builder-icon-button"
             onClick={onToggleHidden}
             title={
-              experience.hidden
+              item.hidden
                 ? "Show in resume"
                 : "Hide from resume"
             }
           >
             <span className="material-symbols-outlined">
-              {experience.hidden
+              {item.hidden
                 ? "visibility_off"
                 : "visibility"}
             </span>
@@ -286,67 +257,63 @@ function ExperienceForm({
             type="button"
             className="builder-icon-button danger"
             onClick={onDelete}
-            title="Delete experience"
+            title="Delete volunteer experience"
           >
             <span className="material-symbols-outlined">
               delete
             </span>
           </button>
-
         </div>
       </div>
 
       <div className="editor-two-columns">
+        <div className="editor-field">
+          <label>Organization</label>
+
+          <input
+            value={item.organization}
+            onChange={(event) =>
+              onUpdate(
+                item.id,
+                "organization",
+                event.target.value
+              )
+            }
+            placeholder="Red Cross"
+          />
+        </div>
 
         <div className="editor-field">
           <label>Position</label>
 
           <input
-            value={experience.position}
+            value={item.position}
             onChange={(event) =>
               onUpdate(
-                experience.id,
+                item.id,
                 "position",
                 event.target.value
               )
             }
-            placeholder="Software Engineer"
+            placeholder="Volunteer Coordinator"
           />
         </div>
-
-        <div className="editor-field">
-          <label>Company</label>
-
-          <input
-            value={experience.company}
-            onChange={(event) =>
-              onUpdate(
-                experience.id,
-                "company",
-                event.target.value
-              )
-            }
-            placeholder="Google"
-          />
-        </div>
-
       </div>
 
       <div className="editor-two-columns">
-
         <div className="editor-field">
           <label>Location</label>
 
           <input
-            value={experience.location}
+            value={item.location}
             onChange={(event) =>
               onUpdate(
-                experience.id,
+                item.id,
                 "location",
                 event.target.value
               )
             }
-            placeholder="Bengaluru, India"
+            placeholder="Chennai, India"
           />
         </div>
 
@@ -354,46 +321,32 @@ function ExperienceForm({
           <label>Period</label>
 
           <input
-            value={experience.period}
+            value={item.period}
             onChange={(event) =>
               onUpdate(
-                experience.id,
+                item.id,
                 "period",
                 event.target.value
               )
             }
-            placeholder="Jan 2024 – Present"
+            placeholder="2024 - Present"
           />
         </div>
-
       </div>
 
       <div className="editor-field">
         <label>Website</label>
 
         <input
-          value={experience.website?.url || ""}
+          value={item.website?.url || ""}
           onChange={(event) =>
             onUpdateWebsite(
-              experience.id,
+              item.id,
               event.target.value
             )
           }
-          placeholder="https://company.com"
-          disabled={!showWebsite}
+          placeholder="https://organization.org"
         />
-
-        <button
-          type="button"
-          className="inline-text-button"
-          onClick={() =>
-            setShowWebsite((current) => !current)
-          }
-        >
-          {showWebsite
-            ? "Remove website"
-            : "Add website"}
-        </button>
       </div>
 
       <div className="editor-field">
@@ -401,25 +354,25 @@ function ExperienceForm({
           <label>Description</label>
 
           <span className="editor-hint">
-            Describe your responsibilities and impact
+            Describe your responsibilities and
+            contributions.
           </span>
         </div>
 
         <RichTextEditor
-            value={experience.description}
-            onChange={(value) =>
-                onUpdate(
-                experience.id,
-                "description",
-                value
-                )
-            }
-            placeholder="Describe your responsibilities, achievements, and impact..."
+          value={item.summary || ""}
+          onChange={(value) =>
+            onUpdate(
+              item.id,
+              "summary",
+              value
+            )
+          }
+          placeholder="Organized community events..."
         />
       </div>
-
     </div>
   );
 }
 
-export default ExperienceEditor;
+export default VolunteerEditor;

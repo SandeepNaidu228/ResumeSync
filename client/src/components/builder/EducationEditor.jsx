@@ -1,14 +1,15 @@
 import { useState } from "react";
-import RichTextEditor from "./RichTextEditor";
 
-function createExperience() {
+function createEducation() {
   return {
     id: crypto.randomUUID(),
     hidden: false,
-    company: "",
-    position: "",
-    location: "",
+    school: "",
+    degree: "",
+    area: "",
+    grade: "",
     period: "",
+    location: "",
     website: {
       url: "",
       label: "",
@@ -17,184 +18,162 @@ function createExperience() {
   };
 }
 
-function ExperienceEditor({ resume, onChange }) {
-  const experiences =
-    resume.sections?.experience?.items || [];
+function EducationEditor({ resume, onChange }) {
+  const education =
+    resume.sections?.education?.items || [];
 
   const [editingId, setEditingId] = useState(
-    experiences[0]?.id || null
+    education[0]?.id || null
   );
 
-  const updateExperiences = (items) => {
+  const updateEducation = (items) => {
     onChange({
       sections: {
         ...resume.sections,
-        experience: {
-          ...resume.sections?.experience,
+        education: {
+          ...(resume.sections?.education || {}),
           items,
         },
       },
     });
   };
 
-  const addExperience = () => {
-    const item = createExperience();
+  const addEducation = () => {
+    const item = createEducation();
 
-    updateExperiences([
-      ...experiences,
-      item,
-    ]);
-
+    updateEducation([...education, item]);
     setEditingId(item.id);
   };
 
-  const updateExperience = (id, field, value) => {
-    const updated = experiences.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            [field]: value,
-          }
-        : item
+  const updateItem = (id, field, value) => {
+    updateEducation(
+      education.map((item) =>
+        item.id === id
+          ? { ...item, [field]: value }
+          : item
+      )
     );
-
-    updateExperiences(updated);
   };
 
   const updateWebsite = (id, value) => {
-    const updated = experiences.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            website: {
-              ...(item.website || {}),
-              url: value,
-            },
-          }
-        : item
+    updateEducation(
+      education.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              website: {
+                ...(item.website || {}),
+                url: value,
+              },
+            }
+          : item
+      )
     );
-
-    updateExperiences(updated);
   };
 
-  const deleteExperience = (id) => {
-    const updated = experiences.filter(
+  const deleteEducation = (id) => {
+    const next = education.filter(
       (item) => item.id !== id
     );
 
-    updateExperiences(updated);
+    updateEducation(next);
 
     if (editingId === id) {
-      setEditingId(updated[0]?.id || null);
+      setEditingId(next[0]?.id || null);
     }
   };
 
   const toggleHidden = (id) => {
-    const updated = experiences.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            hidden: !item.hidden,
-          }
-        : item
+    updateEducation(
+      education.map((item) =>
+        item.id === id
+          ? { ...item, hidden: !item.hidden }
+          : item
+      )
     );
-
-    updateExperiences(updated);
   };
 
   return (
     <section className="resume-editor">
-
       <div className="editor-heading">
         <div>
           <span className="editor-eyebrow">
-            WORK HISTORY
+            EDUCATIONAL BACKGROUND
           </span>
 
-          <h1>Experience</h1>
+          <h1>Education</h1>
 
           <p>
-            Add your professional experience and
-            describe the impact you made.
+            Add your degrees, schools and academic
+            achievements.
           </p>
         </div>
 
         <button
           type="button"
           className="editor-add-button"
-          onClick={addExperience}
+          onClick={addEducation}
         >
           <span className="material-symbols-outlined">
             add
           </span>
-
-          Add Experience
+          Add Education
         </button>
       </div>
 
-      {experiences.length === 0 ? (
+      {education.length === 0 ? (
         <div className="editor-empty">
           <div className="editor-empty-icon">
             <span className="material-symbols-outlined">
-              work
+              school
             </span>
           </div>
 
-          <h2>No experience added yet</h2>
+          <h2>No education added yet</h2>
 
           <p>
-            Add your latest role first. You can add
-            as many positions as you need.
+            Add your degree or qualification to your
+            resume.
           </p>
 
           <button
             type="button"
             className="workspace-primary-btn"
-            onClick={addExperience}
+            onClick={addEducation}
           >
             <span className="material-symbols-outlined">
               add
             </span>
-
-            Add Experience
+            Add Education
           </button>
         </div>
       ) : (
         <div className="experience-editor-layout">
-
           <div className="experience-list">
-            {experiences.map((experience) => (
+            {education.map((item) => (
               <button
                 type="button"
-                key={experience.id}
+                key={item.id}
                 className={`experience-list-item ${
-                  editingId === experience.id
-                    ? "active"
-                    : ""
+                  editingId === item.id ? "active" : ""
                 }`}
-                onClick={() =>
-                  setEditingId(experience.id)
-                }
+                onClick={() => setEditingId(item.id)}
               >
                 <div className="experience-list-main">
                   <strong>
-                    {experience.position ||
-                      "Untitled Position"}
+                    {item.degree || "Untitled Degree"}
                   </strong>
 
                   <span>
-                    {experience.company ||
-                      "Company name"}
+                    {item.school || "Institution"}
                   </span>
 
-                  {experience.period && (
-                    <small>
-                      {experience.period}
-                    </small>
+                  {item.period && (
+                    <small>{item.period}</small>
                   )}
                 </div>
 
-                {experience.hidden && (
+                {item.hidden && (
                   <span className="material-symbols-outlined">
                     visibility_off
                   </span>
@@ -204,79 +183,66 @@ function ExperienceEditor({ resume, onChange }) {
           </div>
 
           <div className="experience-form">
-
-            {experiences
-              .filter(
-                (experience) =>
-                  experience.id === editingId
-              )
-              .map((experience) => (
-                <ExperienceForm
-                  key={experience.id}
-                  experience={experience}
-                  onUpdate={updateExperience}
+            {education
+              .filter((item) => item.id === editingId)
+              .map((item) => (
+                <EducationForm
+                  key={item.id}
+                  item={item}
+                  onUpdate={updateItem}
                   onUpdateWebsite={updateWebsite}
                   onDelete={() =>
-                    deleteExperience(
-                      experience.id
-                    )
+                    deleteEducation(item.id)
                   }
                   onToggleHidden={() =>
-                    toggleHidden(
-                      experience.id
-                    )
+                    toggleHidden(item.id)
                   }
                 />
               ))}
-
           </div>
-
         </div>
       )}
-
     </section>
   );
 }
 
-function ExperienceForm({
-  experience,
+function EducationForm({
+  item,
   onUpdate,
   onUpdateWebsite,
   onDelete,
   onToggleHidden,
 }) {
-  const [showWebsite, setShowWebsite] =
-    useState(Boolean(experience.website?.url));
+  const [showWebsite, setShowWebsite] = useState(
+    Boolean(item.website?.url)
+  );
 
   return (
     <div className="experience-form-card">
-
       <div className="experience-form-header">
         <div>
           <span className="editor-eyebrow">
-            EXPERIENCE ENTRY
+            EDUCATION ENTRY
           </span>
 
           <h2>
-            {experience.position ||
-              "New Experience"}
+            {item.degree || "New Education"}
           </h2>
         </div>
 
         <div className="experience-form-actions">
-
           <button
             type="button"
             className="builder-icon-button"
             onClick={onToggleHidden}
             title={
-              experience.hidden
+              item.hidden
                 ? "Show in resume"
                 : "Hide from resume"
             }
           >
             <span className="material-symbols-outlined">
-              {experience.hidden
+              {item.hidden
                 ? "visibility_off"
                 : "visibility"}
             </span>
@@ -286,67 +252,97 @@ function ExperienceForm({
             type="button"
             className="builder-icon-button danger"
             onClick={onDelete}
-            title="Delete experience"
+            title="Delete education"
           >
             <span className="material-symbols-outlined">
               delete
             </span>
           </button>
-
         </div>
       </div>
 
       <div className="editor-two-columns">
-
         <div className="editor-field">
-          <label>Position</label>
+          <label>School / Institution</label>
 
           <input
-            value={experience.position}
+            value={item.school}
             onChange={(event) =>
               onUpdate(
-                experience.id,
-                "position",
+                item.id,
+                "school",
                 event.target.value
               )
             }
-            placeholder="Software Engineer"
+            placeholder="Anna University"
           />
         </div>
 
         <div className="editor-field">
-          <label>Company</label>
+          <label>Degree</label>
 
           <input
-            value={experience.company}
+            value={item.degree}
             onChange={(event) =>
               onUpdate(
-                experience.id,
-                "company",
+                item.id,
+                "degree",
                 event.target.value
               )
             }
-            placeholder="Google"
+            placeholder="B.E. Computer Science"
           />
         </div>
-
       </div>
 
       <div className="editor-two-columns">
+        <div className="editor-field">
+          <label>Field of Study</label>
 
+          <input
+            value={item.area}
+            onChange={(event) =>
+              onUpdate(
+                item.id,
+                "area",
+                event.target.value
+              )
+            }
+            placeholder="Computer Science"
+          />
+        </div>
+
+        <div className="editor-field">
+          <label>Grade</label>
+
+          <input
+            value={item.grade}
+            onChange={(event) =>
+              onUpdate(
+                item.id,
+                "grade",
+                event.target.value
+              )
+            }
+            placeholder="8.7 CGPA"
+          />
+        </div>
+      </div>
+
+      <div className="editor-two-columns">
         <div className="editor-field">
           <label>Location</label>
 
           <input
-            value={experience.location}
+            value={item.location}
             onChange={(event) =>
               onUpdate(
-                experience.id,
+                item.id,
                 "location",
                 event.target.value
               )
             }
-            placeholder="Bengaluru, India"
+            placeholder="Chennai, India"
           />
         </div>
 
@@ -354,32 +350,31 @@ function ExperienceForm({
           <label>Period</label>
 
           <input
-            value={experience.period}
+            value={item.period}
             onChange={(event) =>
               onUpdate(
-                experience.id,
+                item.id,
                 "period",
                 event.target.value
               )
             }
-            placeholder="Jan 2024 – Present"
+            placeholder="2022 - 2026"
           />
         </div>
-
       </div>
 
       <div className="editor-field">
         <label>Website</label>
 
         <input
-          value={experience.website?.url || ""}
+          value={item.website?.url || ""}
           onChange={(event) =>
             onUpdateWebsite(
-              experience.id,
+              item.id,
               event.target.value
             )
           }
-          placeholder="https://company.com"
+          placeholder="https://university.edu"
           disabled={!showWebsite}
         />
 
@@ -390,9 +385,7 @@ function ExperienceForm({
             setShowWebsite((current) => !current)
           }
         >
-          {showWebsite
-            ? "Remove website"
-            : "Add website"}
+          {showWebsite ? "Remove website" : "Add website"}
         </button>
       </div>
 
@@ -401,25 +394,27 @@ function ExperienceForm({
           <label>Description</label>
 
           <span className="editor-hint">
-            Describe your responsibilities and impact
+            Coursework, achievements, activities, etc.
           </span>
         </div>
 
-        <RichTextEditor
-            value={experience.description}
-            onChange={(value) =>
-                onUpdate(
-                experience.id,
-                "description",
-                value
-                )
-            }
-            placeholder="Describe your responsibilities, achievements, and impact..."
+        {/* We'll switch this to RichTextEditor next,
+            exactly like Experience. */}
+        <textarea
+          rows={8}
+          value={item.description}
+          onChange={(event) =>
+            onUpdate(
+              item.id,
+              "description",
+              event.target.value
+            )
+          }
+          placeholder="Describe relevant academic achievements..."
         />
       </div>
-
     </div>
   );
 }
 
-export default ExperienceEditor;
+export default EducationEditor;
